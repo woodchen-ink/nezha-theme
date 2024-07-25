@@ -1,4 +1,14 @@
-# 哪吒主题开发环境
+# ServerStatus 美化主题使用方法
+
+1. 把`theme-custom`和`static-custom`文件夹放到`/opt/nezha/dashboard`目录下
+2. 在管理后台把前端主题设置为`custom`
+3. 重启容器即可
+
+## 注意
+
+1. `logo.svg`在`static-custom/static/logo.svg`，可以自行更换
+
+## 哪吒主题开发环境
 
 仅支持 `dashboard v0.15.17` 及更新版本。
 
