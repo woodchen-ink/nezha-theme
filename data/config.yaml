@@ -1,22 +1,51 @@
-debug: true
-language: en-US
-site:
-  brand: 全球主机监控
-  cookiename: tulong
-  theme: custom
-  dashboardtheme: custom
-  customcode: ""
-  viewpassword: ""
-oauth2:
-  type: gitee
-  admin: naibahq
-  clientid: xxxxxx
-  clientsecret: xxxxxx
-httpport: 80
-grpcport: 5555
-grpchost: ""
-proxygrpcport: 0
-tls: false
-enableplainipinnotification: false
-enableipchangenotification: false
-ipchangenotificationtag: default
+AvgPingCount: 2
+Cover: 0
+DDNS:
+  AccessID: ""
+  AccessSecret: ""
+  Enable: false
+  MaxRetries: 3
+  Profiles: null
+  Provider: ""
+  WebhookHeaders: ""
+  WebhookMethod: ""
+  WebhookRequestBody: ""
+  WebhookURL: ""
+Debug: true
+DisableSwitchTemplateInFrontend: false
+EnableIPChangeNotification: false
+EnablePlainIPInNotification: false
+GRPCHost: localhost
+GRPCPort: 5555
+HTTPPort: 80
+IPChangeNotificationTag: default
+IgnoredIPNotification: ""
+IgnoredIPNotificationServerIDs: {}
+Language: zh-CN
+Location: Asia/Shanghai
+MaxTCPPingValue: 1000
+Oauth2:
+  Admin: 
+  AdminGroups: ""
+  ClientID: 
+  ClientSecret: 
+  Endpoint: ""
+  OidcAutoCreate: false
+  OidcAutoLogin: false
+  OidcDisplayName: OIDC
+  OidcGroupClaim: groups
+  OidcIssuer: ""
+  OidcLoginClaim: sub
+  OidcLogoutURL: ""
+  OidcRegisterURL: ""
+  OidcScopes: openid,profile,email
+  Type: github
+ProxyGRPCPort: 0
+Site:
+  Brand: 全球主机监控
+  CookieName: tulong
+  CustomCode: ""
+  DashboardTheme: default
+  Theme: custom
+  ViewPassword: ""
+TLS: false

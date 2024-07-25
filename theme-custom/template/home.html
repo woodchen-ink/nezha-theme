@@ -1,310 +1,665 @@
 {{define "theme-custom/home"}}
-{{template "common/header" .}}
-{{if ts .CustomCode}} {{.CustomCode|safe}} {{end}}
-{{template "common/menu" .}}
-<div class="nb-container">
-  <div style="text-align: center; padding: 100px; background-color: burlywood;">
-    <img style="width: 200px;" src="/static/theme-custom/example.png">
-  </div>
-  <div class="ui container">
-    <div id="app">
-      <div class="ui styled fluid accordion" v-for="group in groups">
-        <div class="active title">
-          <i class="dropdown icon"></i>
-          @#(group.Tag!==''?group.Tag:'{{tr "Default"}}')#@
-        </div>
-        <div class="active content">
-          <div class="ui four stackable status cards">
-            <div v-for="server in group.data" :id="server.ID" class="ui card">
-              <div class="content" v-if="server.Host" style="margin-top: 10px; padding-bottom: 5px">
-                <div class="header">
-                  <i :class="server.Host.CountryCode + ' flag'"></i>&nbsp;<i v-if='server.Host.Platform == "darwin"'
-                    class="apple icon"></i><i v-else-if='isWindowsPlatform(server.Host.Platform)'
-                    class="windows icon"></i><i v-else :class="'fl-' + getFontLogoClass(server.Host.Platform)"></i>
-                  @#server.Name + (server.live?'':'[{{tr "Offline"}}]')#@
-                  <i class="nezha-secondary-font info circle icon" style="height: 28px"></i>
-                  <div class="ui content popup" style="margin-bottom: 0">
-                    {{tr "Platform"}}: @#server.Host.Platform#@-@#server.Host.PlatformVersion#@
-                    [<span
-                      v-if="server.Host.Virtualization">@#server.Host.Virtualization#@:</span>@#server.Host.Arch#@]<br />
-                    CPU: @#server.Host.CPU#@<br />
-                    {{tr "DiskUsed"}}:
-                    @#formatByteSize(server.State.DiskUsed)#@/@#formatByteSize(server.Host.DiskTotal)#@<br />
-                    {{tr "MemUsed"}}:
-                    @#formatByteSize(server.State.MemUsed)#@/@#formatByteSize(server.Host.MemTotal)#@<br />
-                    {{tr "SwapUsed"}}:
-                    @#formatByteSize(server.State.SwapUsed)#@/@#formatByteSize(server.Host.SwapTotal)#@<br />
-                    {{tr "NetTransfer"}}: <i
-                      class="arrow alternate circle down outline icon"></i>@#formatByteSize(server.State.NetInTransfer)#@<i
-                      class="arrow alternate circle up outline icon"></i>@#formatByteSize(server.State.NetOutTransfer)#@<br />
-                    {{tr "Load"}}: @# toFixed2(server.State.Load1) #@/@# toFixed2(server.State.Load5) #@/@#
-                    toFixed2(server.State.Load15) #@<br />
-                    {{tr "ProcessCount"}}: @# server.State.ProcessCount #@<br />
-                    {{tr "ConnCount"}}: TCP @# server.State.TcpConnCount #@ / UDP @# server.State.UdpConnCount #@<br />
-                    {{tr "BootTime"}}: @# formatTimestamp(server.Host.BootTime) #@<br />
-                    {{tr "LastActive"}}: @# new Date(server.LastActive).toLocaleString() #@<br />
-                    {{tr "Version"}}: @#server.Host.Version#@<br />
-                  </div>
-                  <div class="ui divider" style="margin-bottom: 5px"></div>
+{{template "theme-custom/header" .}}
+<div id="app">
+    {{template "theme-custom/content-nav" .}}   
+    <!--  showGroup true -->
+    <template v-if="showGroup">
+        <section class="container table-responsive content" style="width:92%;max-width: 1400px" v-for="group in nodesTag">
+            {{template "theme-custom/home-group-true" .}} 
+        </section>
+    </template>
+    <!--  showGroup false -->
+    <template v-else>
+        <section class="container table-responsive content" style="width:92%;max-width: 1400px">
+            {{template "theme-custom/home-group-false" .}}
+        </section>
+    </template>
+    <div class="modal fade" id="mapChartBox" tabindex="-1" role="dialog" aria-labelledby="mapChartTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="mapChartTitle">{{tr "ServersOnWorldMap"}}</h4>
+                    <i class="bi bi-x" data-dismiss="modal" aria-label="Close"></i>
                 </div>
-                <div class="description">
-                  <div class="ui grid">
-                    <div class="three wide column">CPU</div>
-                    <div class="thirteen wide column">
-                      <div :class="formatPercent(server.live,server.State.CPU, 100).class">
-                        <div class="bar" :style="formatPercent(server.live,server.State.CPU, 100).style">
-                          <small>@#formatPercent(server.live,server.State.CPU,100).percent#@%</small>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="three wide column">{{tr "MemUsed"}}</div>
-                    <div class="thirteen wide column">
-                      <div :class="formatPercent(server.live,server.State.MemUsed, server.Host.MemTotal).class">
-                        <div class="bar"
-                          :style="formatPercent(server.live,server.State.MemUsed, server.Host.MemTotal).style">
-                          <small>@#parseInt(server.State?server.State.MemUsed/server.Host.MemTotal*100:0)#@%</small>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="three wide column">{{tr "SwapUsed"}}</div>
-                    <div class="thirteen wide column">
-                      <div :class="formatPercent(server.live,server.State.SwapUsed, server.Host.SwapTotal).class">
-                        <div class="bar"
-                          :style="formatPercent(server.live,server.State.SwapUsed, server.Host.SwapTotal).style">
-                          <small>@#parseInt(server.State?server.State.SwapUsed/server.Host.SwapTotal*100:0)#@%</small>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="three wide column">{{tr "NetSpeed"}}</div>
-                    <div class="thirteen wide column">
-                      <i class="arrow alternate circle down outline icon"></i>
-                      @#formatByteSize(server.State.NetInSpeed)#@/s
-                      <i class="arrow alternate circle up outline icon"></i>
-                      @#formatByteSize(server.State.NetOutSpeed)#@/s
-                    </div>
-                    <div class="three wide column">{{tr "DiskUsed"}}</div>
-                    <div class="thirteen wide column">
-                      <div :class="formatPercent(server.live,server.State.DiskUsed, server.Host.DiskTotal).class">
-                        <div class="bar"
-                          :style="formatPercent(server.live,server.State.DiskUsed, server.Host.DiskTotal).style">
-                          <small>@#parseInt(server.State?server.State.DiskUsed/server.Host.DiskTotal*100:0)#@%</small>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="three wide column">{{tr "Uptime"}}</div>
-                    <div class="thirteen wide column">
-                      <i class="clock icon"></i>@#secondToDate(server.State.Uptime)#@
-                    </div>
-                  </div>
+                <div class="modal-body">
+                    <div id="mapChart" style="width:100%;height:auto;"></div>
                 </div>
-              </div>
-              <div class="content" v-else>
-                <p>@#server.Name#@</p>
-                <p>{{tr "ServerIsOffline"}}</p>
-              </div>
             </div>
-          </div>
         </div>
-      </div>
     </div>
-  </div>
+    {{template "theme-custom/content-footer" .}}
 </div>
-{{template "common/footer" .}}
 <script>
-  const initData = JSON.parse('{{.Servers}}').servers;
-  var statusCards = new Vue({
-    el: '#app',
-    delimiters: ['@#', '#@'],
-    data: {
-      data: initData,
-      groups: [],
-      cache: [],
-    },
-    created() {
-      this.group()
-    },
-    mounted() {
-      $('.nezha-secondary-font.info.icon').popup({
-        popup: '.ui.content.popup',
-        exclusive: true,
-      });
-    },
-    methods: {
-      toFixed2(f) {
-        return f.toFixed(2)
-      },
-      isWindowsPlatform(str) {
-        return str.includes('Windows')
-      },
-      getFontLogoClass(str) {
-        if (["almalinux",
-          "alpine",
-          "aosc",
-          "apple",
-          "archlinux",
-          "archlabs",
-          "artix",
-          "budgie",
-          "centos",
-          "coreos",
-          "debian",
-          "deepin",
-          "devuan",
-          "docker",
-          "elementary",
-          "fedora",
-          "ferris",
-          "flathub",
-          "freebsd",
-          "gentoo",
-          "gnu-guix",
-          "illumos",
-          "kali-linux",
-          "linuxmint",
-          "mageia",
-          "mandriva",
-          "manjaro",
-          "nixos",
-          "openbsd",
-          "opensuse",
-          "pop-os",
-          "raspberry-pi",
-          "redhat",
-          "rocky-linux",
-          "sabayon",
-          "slackware",
-          "snappy",
-          "solus",
-          "tux",
-          "ubuntu",
-          "void",
-          "zorin"].indexOf(str)
-          > -1) {
-          return str;
-        }
-        if (['openwrt', 'linux'].indexOf(str) > -1) {
-          return 'tux';
-        }
-        if (str == 'amazon') {
-          return 'redhat';
-        }
-        return '';
-      },
-      group() {
-        this.groups = groupingData(this.data, "Tag")
-      },
-      formatPercent(live, used, total) {
-        const percent = live ? (parseInt(used / total * 100) || 0) : -1
-        if (!this.cache[percent]) {
-          this.cache[percent] = {
-            class: {
-              ui: true,
-              progress: true,
+    new Vue({
+        el: '#app',
+        delimiters: ['@#', '#@'],
+        data: {
+            page: 'index',
+            defaultTemplate: {{.Conf.Site.Theme}},
+            templates: {{.Themes}},
+            cache: [],
+            servers: [],
+            nodesTag: [],
+            nodesNoTag: [],
+            chartDataList: [],
+            ws: null,
+            language: {{.Conf.Language}},
+            countryMap: {},
+            countryServer: [],
+            countryNameMap: {},
+            countryMapChartData: [],
+            countryMapGeoFile: localStorage.getItem("countryMapGeoFile") ? localStorage.getItem("countryMapGeoFile") : 'nezha.world.geo.json',
+            sensorList: [
+                'TC0D', //CPU Die 温度，代表 CPU 内部的温度
+                'TC0H', //CPU Heatsink 温度，代表 CPU 散热器的温度
+                'TC0P', //CPU Proximity 温度，代表 CPU 附近的温度
+                'k10temp', //AMD K10（Phenom、Athlon、Sempron 等）系列处理器的温度监测
+                'k10temp_tctl', //AMD K10 (Athlon II、Phenom II 等）系列处理器的温度监测
+                'coretemp_package_id_0', //整个封装处理器温度
+                'cpu_thermal_zone', //全志
+                'cpu-thermal', //树莓派(博通)
+                'soc_thermal', //新瑞芯微
+                'cpu_thermal', //老瑞芯微
+                'ACPI\\ThermalZone\\TZ0__0', //Windows
+                'ACPI\\ThermalZone\\CPUZ_0', //Windows
+                'ACPI\\ThermalZone\\TZ00_0', //Windows
+                'ACPI\\ThermalZone\\TZ001_0', //Windows
+                'ACPI\\ThermalZone\\THM0_0' //Windows
+            ]
+        },
+        mixins: [mixinsVue],
+        created() {
+            this.servers = JSON.parse('{{.Servers}}').servers;
+            if(this.showGroup) {
+                this.nodesTag = this.groupingData(this.handleNodes(this.servers),"Tag");
+            } else {
+                this.nodesNoTag = this.handleNodes(this.servers);
+            }
+            this.initCountryMap().then(countryMap => {
+                this.countryMap = countryMap;
+                this.countryNameMap = this.initCountryNameMap();
+                this.countryServer = this.initCountryServer();
+                this.countryMapChartData = this.initCountryMapChartData();
+            })
+        },
+        mounted() {
+            // 初始化时建立WebSocket连接
+            this.connect();
+            // 监听页面可见性变化
+            document.addEventListener("visibilitychange", () => {
+                if (document.visibilityState === "visible") {
+                    setTimeout(() => {
+                        if (document.hasFocus()) {
+                            this.connect();
+                        }
+                    }, 200);
+                }
+            });
+        },
+        methods: {
+            initCountryMap() {
+                return fetch(this.staticUrl + '/maps/nezha.countrymap.json')
+                    .then(response => response.json())
+                    .then(data => {
+                        return data;
+                    })
             },
-            style: {
-              'transition-duration': '300ms',
-              'min-width': 'unset',
-              width: percent + '% !important',
+            initCountryNameMap(){
+                const result = {};
+                for (const item in this.countryMap) {
+                    result[this.countryMap[item].en] = this.language=='zh-CN' ? this.countryMap[item].zh : this.countryMap[item].en;
+                }
+                return result;
             },
-            percent,
-          }
-          if (percent < 0) {
-            this.cache[percent].style['background-color'] = 'slategray'
-            this.cache[percent].class.offline = true
-          } else if (percent < 51) {
-            this.cache[percent].style['background-color'] = '#0a94f2'
-            this.cache[percent].class.fine = true
-          } else if (percent < 81) {
-            this.cache[percent].style['background-color'] = 'orange'
-            this.cache[percent].class.warning = true
-          } else {
-            this.cache[percent].style['background-color'] = 'crimson'
-            this.cache[percent].class.error = true
-          }
-        }
-        return this.cache[percent]
-      },
-      secondToDate(s) {
-        var d = Math.floor(s / 3600 / 24);
-        if (d > 0) {
-          return d + " {{tr "Day"}}"
-        }
-        var h = Math.floor(s / 3600 % 24);
-        var m = Math.floor(s / 60 % 60);
-        var s = Math.floor(s % 60);
-        return h + ":" + ("0" + m).slice(-2) + ":" + ("0" + s).slice(-2);
-      },
-      formatTimestamp(t) {
-        return new Date(t * 1000).toLocaleString()
-      },
-      formatByteSize(bs) {
-        const x = readableBytes(bs)
-        return x != "NaN undefined" ? x : '0B'
-      }
-    }
-  })
+            initCountryServer() {
+                let count = {};
+                let result = [];
+                let exist = {};
+                this.servers.forEach(item => {
+                    if (item.Host.CountryCode) {
+                        if(this.countryMapGeoFile == 'nezha.world.geo.json' || this.countryMapGeoFile == 'nezha.world.antarctica.geo.json') {
+                            if(item.Host.CountryCode.toLowerCase() == 'tw' || item.Host.CountryCode.toLowerCase() == 'hk' || item.Host.CountryCode.toLowerCase() == 'mo') item.Host.CountryCode = 'cn';
+                        }
+                        if (!exist[item.Host.CountryCode]) {
+                            exist[item.Host.CountryCode] = true;
+                            count[item.Host.CountryCode] = 1;
+                            const obj = {
+                                'countryCode': item.Host.CountryCode,
+                                'count': count[item.Host.CountryCode]
+                            };
+                            result.push(obj);
+                        } else {
+                            count[item.Host.CountryCode]++;
+                            result.find(obj => obj.countryCode === item.Host.CountryCode).count = count[item.Host.CountryCode];
+                        }
+                    }
+                });
+                return result;
+            },
+            initCountryMapChartData(){
+                let result = [];
+                this.countryServer.forEach(item => {
+                    var obj = {
+                        "name": this.language=='zh-CN' ? this.countryMap[item.countryCode].zh : this.countryMap[item.countryCode].en,
+                        "value": item.count
+                    }
+                    result.push(obj);
+                });
+                return result;
+            },
+            showMapChart(){
+                // 处理异常
+                if( this.countryMapChartData.length == 0 ) {
+                    console.log('init countryMapChartData not complete');
+                    return;
+                }
+                const unit = this.language=='zh-CN' ? '台' : 'servers';
+                const isMobile = this.checkIsMobile();
+                const width = isMobile ? 338 : 1102;
+                const height = isMobile ? 200 : 500;
+                const backgroundColor = this.theme == "dark" ? '' : '';
+                const inRangeColor = this.theme == "dark" ? '#D2B206' : '#FFDF32';
+                const tooltipBackgroundColor = this.theme == "dark" ? "#ffffff" : '#ffffff';
+                const tooltipBorderColor = this.theme == "dark" ? "#ffffff" : "#ffffff"; 
+                const fontSize = isMobile ? 10 : 12;
+                const fontColor = this.theme == "dark" ? "#000000" : "#000000";     
+                const chartContainer = document.getElementById('mapChart');
+                const mapChart = echarts.init(chartContainer, '', { // init图表
+                    renderer: 'canvas',
+                    useDirtyRect: false,
+                    width: width,
+                    height: height,
+                });
+                fetch(this.staticUrl + '/maps/' + this.countryMapGeoFile)
+                    .then(response => response.json())
+                    .then(worldMap => {
+                        echarts.registerMap('nezha-world-map', worldMap);
+                        const option = {
+                            title: {
+                                show: false,
+                            },
+                            backgroundColor: backgroundColor,
+                            grid: {
+                                top: 0,
+                                left: 10,
+                                right: 10
+                            },
+                            tooltip: {
+                                trigger: 'item',
+                                formatter: function (params) {
+                                    if (params.data && params.data.value > 0) {
+                                        return params.name + ' ' + params.data.value + ' ' + unit;
+                                    } else {
+                                        return '';
+                                    }
+                                },
+                                backgroundColor: tooltipBackgroundColor,
+                                borderColor: tooltipBorderColor,
+                                padding: [4,10],
+                                textStyle: {
+                                    fontSize: fontSize,
+                                    color: fontColor
+                                }
+                            },
+                            visualMap: {
+                                show: false,
+                                min: 0,
+                                max: 1000,
+                                calculable: false,
+                                inRange: {
+                                    color: inRangeColor
+                                }
+                            },
+                            series: [
+                                {
+                                    type: 'map',
+                                    map: 'nezha-world-map',
+                                    roam: true,
+                                    label: {
+                                        show: false,
+                                        fontSize: 8
+                                    },
+                                    data: this.countryMapChartData,
+                                    nameMap: this.countryNameMap,
+                                }
+                            ]
+                        };
+                        mapChart.setOption(option);
+                    });
+            },
+            isWindowsPlatform(str) {
+                return str.includes('Windows')
+            },
+            getPlatformName(str){
+                if (str.toLowerCase().includes('opensuse')) {
+                    return 'openSUSE';
+                }
+                return str;
+            },
+            getFontLogoClass(str) {
+                if (["almalinux",
+                        "alpine",
+                        "aosc",
+                        "apple",
+                        "archlinux",
+                        "archlabs",
+                        "artix",
+                        "budgie",
+                        "centos",
+                        "coreos",
+                        "debian",
+                        "deepin",
+                        "devuan",
+                        "docker",
+                        "elementary",
+                        "fedora",
+                        "ferris",
+                        "flathub",
+                        "freebsd",
+                        "gentoo",
+                        "gnu-guix",
+                        "illumos",
+                        "kali-linux",
+                        "linuxmint",
+                        "mageia",
+                        "mandriva",
+                        "manjaro",
+                        "nixos",
+                        "openbsd",
+                        "opensuse",
+                        "pop-os",
+                        "raspberry-pi",
+                        "redhat",
+                        "rocky-linux",
+                        "sabayon",
+                        "slackware",
+                        "snappy",
+                        "solus",
+                        "tux",
+                        "ubuntu",
+                        "void",
+                        "zorin"].indexOf(str)
+                    > -1) {
+                    return str;
+                }
+                if (str == 'darwin') {
+                    return 'apple';
+                }
+                if (['openwrt', 'linux', "immortalwrt"].indexOf(str) > -1) {
+                    return 'tux';
+                }
+                if (str == 'amazon') {
+                    return 'redhat';
+                }
+                if (str == 'arch') {
+                    return 'archlinux';
+                }
+                if (str.toLowerCase().includes('opensuse')) {
+                    return 'opensuse';
+                }
+                return '';
+            },
+            secondToDate(s) {
+                const d = Math.floor(s / 3600 / 24);
+                if (d > 0) {
+                    return d + ' {{tr "Day"}}'
+                }
+                const h = Math.floor(s / 3600 % 24);
+                const m = Math.floor(s / 60 % 60);
+                const second = Math.floor(s % 60);
+                return h + ":" + ("0" + m).slice(-2) + ":" + ("0" + second).slice(-2);
+            },
+            formatTimestamp(t) {
+                return new Date(t * 1000).toLocaleString()
+            },
+            formatByteSize(bs) {
+                const x = this.readableBytes(bs)
+                return x !== "NaN undefined" ? x : '0B'
+            },
+            formatPercent(live, used, total) {
+                //const percent = live ? (this.toFixed2(used / total * 100) || 0) : 0
+                const percent = (this.toFixed2(used / total * 100) || 0)
+                return this.formatPercents(live,percent)
+            },
+            formatPercents(live,percent) {
+                //if(!live) { percent = 0; }
+                if (isNaN(percent)) {
+                    percent = 0;
+                }
+                if (percent <= 0) {
+                    percent = 0;
+                }
+                if (percent >= 100) {
+                    percent = 100;
+                }
+                if (!this.cache[percent]) {
+                    this.cache[percent] = {
+                        class: 'progress-bar progress-bar-success',
+                        style: `width: ${parseInt(percent)+1}%`,
+                        percent,
+                    }
+                    if (percent < 80) {
+                        this.cache[percent].class = 'progress-bar progress-bar-success'
+                    } else if (percent < 90) {
+                        this.cache[percent].class = 'progress-bar progress-bar-warning'
+                    } else {
+                        this.cache[percent].class = 'progress-bar progress-bar-danger'
+                    }
+                }
+                return this.cache[percent]
+            },
+            readableBytes(bytes) {
+                if (!bytes) {
+                    return '0B'
+                }
+                const i = Math.floor(Math.log(bytes) / Math.log(1024)),
+                    sizes = ["B", "K", "M", "G", "T", "P", "E", "Z", "Y"];
+                return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + sizes[i];
+            },
+            connect() {
+                // 如果已经存在 WebSocket 连接并且处于开启状态，则不重复建立连接
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    console.log('Closing old WebSocket connection...');
+                    this.ws.close();
+                }
+                const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+                this.ws = new WebSocket(wsProtocol + '://' + window.location.host + '/ws');
 
-  function groupingData(data, field) {
-    let map = {};
-    let dest = [];
-    data.forEach(item => {
-      if (!map[item[field]]) {
-        dest.push({
-          [field]: item[field],
-          data: [item]
-        });
-        map[item[field]] = item;
-      } else {
-        dest.forEach(dItem => {
-          if (dItem[field] == item[field]) {
-            dItem.data.push(item);
-          }
-        });
-      }
+                this.ws.onopen = function () {
+                    console.log("Connection open ...")
+                }
+                this.ws.onmessage = (evt) => {
+                    let jsonData = evt.data
+                    const data = JSON.parse(jsonData)
+                    for (let i = 0; i < data.servers?.length; i++) {
+                        const ns = data.servers[i];
+                        if (!ns.Host) {
+                            data.servers[i].live = false
+                        } else {
+                            const lastActive = new Date(ns.LastActive).getTime()
+                            data.servers[i].live = data.now - lastActive <= 10 * 1000;
+                        }
+                    }
+                    if(this.showGroup) {
+                        this.nodesTag = this.groupingData(this.handleNodes(data.servers),"Tag");
+                    } else {
+                        this.nodesNoTag = this.handleNodes(data.servers);
+                    }
+                }
+                this.ws.onclose = () => {
+                    setTimeout(() => {
+                        this.connect();
+                    }, 5000);
+                };
+                this.ws.onerror = () => {
+                    this.ws.close()
+                }
+            },
+            handleNodes(servers) {
+                let nodes = []
+                servers?.forEach(server => {
+                    let platform = server.Host.Platform;
+                    if (this.isWindowsPlatform(platform)) {
+                        platform = "windows"
+                    }else if (platform === "immortalwrt") {
+                        platform = "openwrt"
+                    }
+                    let node = {
+                        ID: server.ID,
+                        name: server.Name,
+                        os: platform,
+                        location: server.Host.CountryCode,
+                        stateuptime: server.State.Uptime,
+                        uptime: this.secondToDate(server.State.Uptime),
+                        load: this.toFixed2(server.State.Load1),
+                        network: this.getNetworkSpeed(server.State.NetInSpeed, server.State.NetOutSpeed),
+                        traffic: this.formatByteSize(server.State.NetInTransfer) + ' | ' + this.formatByteSize(server.State.NetOutTransfer),
+                        cpu: this.formatPercents(server.live, this.toFixed2(server.State.CPU)),
+                        memory: this.formatPercent(server.live, server.State.MemUsed, server.Host.MemTotal),
+                        hdd: this.formatPercent(server.live, server.State.DiskUsed, server.Host.DiskTotal),
+                        online: server.live,
+                        state: server.State,
+                        host: server.Host,
+                        lastActive: server.LastActive,
+                        Tag: server.Tag,
+                    }
+                    nodes.push(node)
+                })
+                return nodes;
+            },
+            getNetworkSpeed(netInSpeed, netOutSpeed) {
+                return this.formatByteSize(netInSpeed) + ' | ' + this.formatByteSize(netOutSpeed)
+            },
+            toggleDetailedTemp(id){
+                const tempDom = document.getElementById(`temp-${id}`); 
+                const tempDetailShow = tempDom.getAttribute('temp-detail-show');
+                const tempMain = document.getElementById(`temp-main-${id}`); 
+                const tempDetail = document.getElementById(`temp-detail-${id}`); 
+                if (tempDetailShow == 0){
+                    tempMain.style.display = 'none';
+                    tempDetail.style.display = 'inline';
+                    tempDom.setAttribute('temp-detail-show', 1);
+                } else {
+                    tempMain.style.display = 'inline';
+                    tempDetail.style.display = 'none';
+                    tempDom.setAttribute('temp-detail-show', 0);
+                }
+            },
+            getTemperature(temperatureList, sensorList) {
+                // 将 sensorList 中的所有项转换为小写
+                const lowerCaseSensorList = sensorList.map(sensor => sensor.toLowerCase());
+
+                // 合并过滤逻辑：过滤出 Temperature 不为 0 且 Name 在 sensorList 中的元素（忽略大小写）
+                const filtered = temperatureList.filter(item => item.Temperature !== 0 && lowerCaseSensorList.includes(item.Name.toLowerCase()));
+
+                // 如果有匹配的元素，则计算这些元素的 Temperature 的最大值
+                if (filtered.length > 0) {
+                    return filtered.reduce((max, current) => {
+                        return current.Temperature > max ? current.Temperature : max;
+                    }, filtered[0].Temperature);
+                }
+
+                // 如果没有匹配的元素，则计算 temperatureList 中所有 Temperature 不为 0 的元素的最大值
+                const nonZeroTemps = temperatureList.filter(item => item.Temperature !== 0);
+                if (nonZeroTemps.length > 0) {
+                    return nonZeroTemps.reduce((max, current) => {
+                        return current.Temperature > max ? current.Temperature : max;
+                    }, nonZeroTemps[0].Temperature);
+                }
+
+                // 如果所有元素的 Temperature 都为 0，则返回一个默认值 0
+                return 0;
+            },
+            showCharts(event, id) {
+                const chartContainer = this.$refs[`chart${id}`][0];
+                const chartboxShow = chartContainer.getAttribute('chartbox-show');
+                chartContainer.setAttribute('chartbox-show', chartboxShow === '0' ? '1' : '0');
+                const isAriaExpandedFalse = event.currentTarget.getAttribute('aria-expanded') === 'false';
+                if (!isAriaExpandedFalse) return;
+                // 发起数据请求
+                const url = `/api/v1/monitor/${id}`;
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.result) { // 数据请求成功，更新数据并渲染图表
+                            this.chartDataList[id - 1] = data.result;
+                            this.$nextTick(() => {
+                                this.renderCharts(id);
+                            });
+                        } else {
+                            console.log('this agent (id:'+ id + ') has no monitor.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching data:', error);
+                    });
+            },
+            renderCharts(id, reload = false) {
+                if (!this.chartDataList[id - 1]) return;
+                const chartData = this.chartDataList[id - 1];
+                const chartContainer = this.$refs[`chart${id}`][0];
+                if (reload) { //点击切换亮色/暗色风格模式时,重新载入echarts图表的逻辑,
+                    // 第一步,查找已经渲染出的图表容器,并销毁它
+                    const existingChart = echarts.getInstanceByDom(chartContainer);
+                    if (existingChart) existingChart.dispose();
+                    // 第二步,如果图表容器处于不可见状态chartboxShow=0,不重新渲染出新的图表,
+                    // 如果图表容器处于可见状态chartboxShow=1,重新渲染出新的图表
+                    const chartboxShow = chartContainer.getAttribute('chartbox-show');
+                    if ( chartboxShow === '0' ) return; 
+                }
+                // 定义图表参数值
+                const MaxTCPPingValue = {{.Conf.MaxTCPPingValue}} ? {{.Conf.MaxTCPPingValue}} : 300;
+                const isMobile = this.checkIsMobile();
+                const fontSize = isMobile ? 10 : 14;
+                const gridLeft = isMobile ? 25 : 36;
+                const gridRight = isMobile ? 5 : 20;
+                const legendLeft = isMobile ? 'center' : 'center';
+                const legendTop = isMobile ? 5 : 5;
+                const legendPadding= isMobile ? [5,0,5,0] : [5,0,5,0];
+                const systemDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                const theme = localStorage.getItem("theme") ? localStorage.getItem("theme") : systemDarkMode;
+                const chartTheme = theme == "dark" ? "dark" : "default";
+                const fontColor = theme == "dark" ? "#f1f1f1" : "#000000";
+                const backgroundColor = theme == "dark" ? '' : '';
+                const tooltipBackgroundColor = theme == "dark" ? "#1C1D26" : '#ffffff';
+                const tooltipBorderColor = theme == "dark" ? "#31363B" : "#ffffff";
+                // 渲染图表
+                const chart = echarts.init(chartContainer, chartTheme, {
+                    renderer: 'canvas',
+                    useDirtyRect: false,
+                    width: 'auto',
+                    height: 300,
+                });
+                const xAxisData = chartData[0].created_at.map(time => new Date(time).toLocaleString());
+                const seriesData = chartData.map(item => {
+                    let loss = 0;
+                    const data = item.avg_delay.map((avgDelay, index) => {                        
+                        if(avgDelay > 0 && avgDelay < MaxTCPPingValue){
+                            loss += avgDelay > 0.9 * MaxTCPPingValue ? 1 : 0;
+                            return [item.created_at[index], avgDelay.toFixed(2)];
+                        }else{
+                            loss += 1;
+                        }
+                    });
+                    const lossRate = ((loss / item.created_at.length) * 100).toFixed(1);
+                    item.monitor_name = item.monitor_name.includes("%") ? item.monitor_name : `${item.monitor_name} ${lossRate}%`;
+                    return {
+                        name: item.monitor_name,
+                        type: 'line',
+                        smooth: true,
+                        symbol: 'none',
+                        data: data,
+                        connectNulls: true
+                    };
+                });
+
+                const legendData = chartData.map(item => item.monitor_name);
+                const maxLegendsPerRowMobile = localStorage.getItem("maxLegendsPerRowMobile") ? localStorage.getItem("maxLegendsPerRowMobile") : 3;
+                const maxLegendsPerRowPc = localStorage.getItem("maxLegendsPerRowPc") ? localStorage.getItem("maxLegendsPerRowPc") : 6;
+                const autoIncrement = Math.floor((legendData.length - 1) / (isMobile ? maxLegendsPerRowMobile : maxLegendsPerRowPc)) * (isMobile ? 20 : 28)
+                const height = 300 + autoIncrement;
+                const gridTop = 40 + autoIncrement;
+                const legendIcon = isMobile ? 'rect' : ""; 
+                const itemWidth = isMobile ? 10 : 25;
+                const itemHeight = isMobile ? 10 : 14;
+                chart.resize({
+                    width: 'auto',
+                    height: height
+                });
+
+                const option = {
+                    backgroundColor: backgroundColor,
+                    title: {
+                        show: false
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        backgroundColor: tooltipBackgroundColor,
+                        borderColor: tooltipBorderColor,
+                        textStyle: {
+                            fontSize: fontSize,
+                            color: fontColor
+                        }
+                    },
+                    legend: {
+                        data: legendData,
+                        show: true,
+                        icon: legendIcon,
+                        textStyle: {
+                            fontSize: fontSize,
+                            color: fontColor
+                        },
+                        top: legendTop,
+                        bottom: 0,
+                        left: legendLeft,
+                        padding: legendPadding,
+                        itemWidth: itemWidth,
+                        itemHeight: itemHeight,
+                    },
+                    xAxis: {
+                        type: 'time',
+                        data: xAxisData,
+                        axisLabel: {
+                            textStyle: {
+                                fontSize: fontSize
+                            }
+                        }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        axisLabel: {
+                            textStyle: {
+                                fontSize: fontSize
+                            }
+                        }
+                    },
+                    dataZoom: [
+                        {
+                            type: 'slider',
+                            start: 0,
+                            end: 100
+                        }
+                    ],
+                    series: seriesData,
+                    textStyle: {
+                        fontSize: fontSize,
+                        color: fontColor
+                    },
+                    grid: {
+                        top: gridTop,
+                        left: gridLeft,
+                        right: gridRight
+                    }
+                };
+                chart.setOption(option);
+            },
+            reloadCharts() { // 重新加载所有图表
+                this.servers.forEach(node => {
+                    const id = node.ID;
+                    const chartData = this.chartDataList[id - 1];
+                    if (chartData) {
+                        this.renderCharts(id,true);
+                    }
+                });
+            },
+            getCoreAndGHz(str){
+                if ((str || []).hasOwnProperty(0) === false) {
+                    return '';
+                }
+                str = str[0];
+                let GHz = str.match(/(\d|\.)+GHz/g);
+                let Core = str.match(/(\d|\.)+ Physical/g);
+                GHz = GHz !== null ? GHz.hasOwnProperty(0) === false ? '' : GHz[0] : ''
+                Core = Core !== null ? Core.hasOwnProperty(0) === false ? '?' : Core[0] : '?'
+                if (Core === '?') {
+                    let Core = str.match(/(\d|\.)+ Virtual/g);
+                    Core = Core !== null ? Core.hasOwnProperty(0) === false ? '?' : Core[0] : '?'
+                    return Core.replace('Virtual', 'Core')
+                }
+                return Core.replace('Physical', 'Core');
+            }
+        }
     })
-    return dest;
-  }
-
-  const wsProtocol = window.location.protocol == "https:" ? "wss" : "ws"
-  const ws = new WebSocket(wsProtocol + '://' + window.location.host + '/ws');
-  ws.onopen = function (evt) {
-    $.suiAlert({
-      title: '{{tr "RealtimeChannelEstablished"}}',
-      description: '{{tr "GetTheLatestMonitoringDataInRealTime"}}',
-      type: 'success',
-      time: '2',
-      position: 'top-center',
-    });
-  }
-  ws.onmessage = function (evt) {
-    const oldServers = statusCards.servers
-    const data = JSON.parse(evt.data)
-    statusCards.servers = data.servers
-    for (let i = 0; i < statusCards.servers.length; i++) {
-      const ns = statusCards.servers[i];
-      if (!ns.Host) ns.live = false
-      else {
-        const lastActive = new Date(ns.LastActive).getTime()
-        if (data.now - lastActive > 10 * 1000) {
-          ns.live = false
-        } else {
-          ns.live = true
-        }
-      }
-    }
-    statusCards.groups = groupingData(statusCards.servers, "Tag")
-  }
-  ws.onclose = function () {
-    $.suiAlert({
-      title: '{{tr "RealtimeChannelDisconnect"}}',
-      description: '{{tr "CanNotGetTheLatestMonitoringDataInRealTime"}}',
-      type: 'warning',
-      time: '2',
-      position: 'top-center',
-    });
-  }
-  $('.ui.accordion')
-    .accordion({ "exclusive": false })
-    ;
 </script>
+{{template "theme-custom/footer" .}}
 {{end}}

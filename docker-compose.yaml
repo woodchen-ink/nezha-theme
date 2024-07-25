@@ -6,9 +6,9 @@ services:
     restart: always
     volumes:
       - ./data:/dashboard/data
-      - ./static-custom/static:/dashboard/resource/static/custom:ro
-      - ./theme-custom/template:/dashboard/resource/template/theme-custom:ro
-      - ./dashboard-custom/template:/dashboard/resource/template/dashboard-custom:ro
+      - ./static-custom/static:/dashboard/resource/static/custom:rw
+      - ./theme-custom/template:/dashboard/resource/template/theme-custom:rw
+      - ./dashboard-custom/template:/dashboard/resource/template/dashboard-custom:rw
     ports:
       - 80:80
       - 5555:5555
