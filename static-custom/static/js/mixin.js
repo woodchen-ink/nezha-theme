@@ -3,7 +3,7 @@ const mixinsVue = {
         cache: [],
         theme: "light",
         isSystemTheme: false,
-        showGroup: false,
+        showGroup: true,
         showGoTop: false,
         preferredTemplate: null,
         isMobile: false,
@@ -51,7 +51,7 @@ const mixinsVue = {
         },
         initShowGroup() {
             const storedShowGroup = localStorage.getItem("showGroup");
-            const showGroup = storedShowGroup !== null ? JSON.parse(storedShowGroup) : false;
+            const showGroup = storedShowGroup !== null ? JSON.parse(storedShowGroup) : true;
             if (storedShowGroup === null) {
                 localStorage.setItem("showGroup", showGroup);
             }

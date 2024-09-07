@@ -4,11 +4,7 @@ body {
     background-position: top !important;
     background-repeat: no-repeat !important;
     background-size: cover !important;
-    background-image: url(https://random-api.czl.net/pic/czlwb) !important;
-}
-
-* {
-  font-family: system-ui,-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Segoe UI,Arial,Roboto,'PingFang SC',miui,'Hiragino Sans GB','Microsoft Yahei',sans-serif ;
+    background-image: url(https://random-api.czl.net/pic/all) !important;
 }
 
 /* 导航部分 开始*/
@@ -164,7 +160,8 @@ tr.accordion-toggle{
 .table > thead > tr > th {
     position: relative;
     border:none; 
-    line-height:20px;
+    line-height:30px;
+    vertical-align: unset !important;
 }
 
 .table > tbody > tr > td:before,
@@ -192,6 +189,9 @@ tr.accordion-toggle{
 
 .progress {
     margin-bottom: 0;
+    display: flex; 
+    align-items: center; 
+    height: 100%;
 }
 
 .progress-bar {

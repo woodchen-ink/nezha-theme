@@ -4,24 +4,24 @@
     {{template "theme-custom/content-nav" .}}
     <!--  showGroup true -->
     <template v-if="showGroup">
-        <section v-if="servicesTag.length === 0" class="container content" style="max-width: 95vw; min-height: .01%;overflow-x: auto;">
+        <section v-if="servicesTag.length === 0" class="container content" style="width:92%;max-width: 1400px; margin: 20px auto;">
             <!-- <p>No Valid Service Monitor Configuration Entries Found. Please Verify in the <a href="/monitor">Admin Panel</a>.</p> -->
         </section>
-        <section v-else class="container content" style="max-width: 95vw; min-height: .01%;overflow-x: auto;" v-for="group in servicesTag">
+        <section v-else class="container content" style="width:92%;max-width: 1400px; margin: 20px auto;" v-for="group in servicesTag">
             {{template "theme-custom/service-group-true" .}} 
         </section>
     </template>
     <!--  showGroup false -->
     <template v-else>
-        <section v-if="servicesNoTag.length === 0" class="container content" style="max-width: 95vw; min-height: .01%;overflow-x: auto;">
+        <section v-if="servicesNoTag.length === 0" class="container content" style="width:92%;max-width: 1400px; margin: 20px auto;">
             <!-- <p>No Valid Service Monitor Configuration Entries Found. Please Verify in the <a href="/monitor">Admin Panel</a>.</p> -->
         </section>
-        <section v-else class="container content" style="max-width: 95vw; min-height: .01%;overflow-x: auto;">
+        <section v-else class="container content" style="width:92%;max-width: 1400px; margin: 20px auto;">
             {{template "theme-custom/service-group-false" .}}
         </section>
     </template>
     {{if .CycleTransferStats}}
-        <section class="container content table-responsive" style="max-width: 95vw">
+        <section class="container content table-responsive" style="width:92%;max-width: 1400px; margin: 20px auto;">
             <table class="table table-striped table-condensed table-hover">
                 <thead>
                     <tr class="node-group-tag">
@@ -62,7 +62,7 @@
                                             <small style="display: inline-block;width: max-content;">{{TransLeft $stats.Max $transfer}} / {{$TransLeftPercent}} %</small>
                                         </div>
                                     </div>
-                                </td>
+                                </td>                               
                             </tr>
                         {{end}}
                     {{end}}
