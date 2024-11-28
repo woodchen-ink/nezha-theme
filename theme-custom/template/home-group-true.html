@@ -79,14 +79,18 @@
             <td colspan="16">
                 <div class="accordian-body collapse" :id="'rt'+node.ID">
                     <div style="display: flex;left-items: center;justify-content: center;flex-direction: column; max-width: 89vw">
-                        <span v-if="node.additional && Object.keys(node.additional.plan).length > 0" class="node-cell-expand"></span>
+                        <span v-if="node.additional && node.additional.plan && Object.keys(node.additional.plan).length > 0" class="node-cell-expand">
                             <span class="node-cell-expand-label">{{tr "Plan"}}:</span>
-                            <span v-if="node.additional && Object.keys(node.additional.price).length > 0" class="plan price">
+                            <span v-if="node.additional && node.additional.price && Object.keys(node.additional.price).length > 0" class="plan price">
                                 <span v-if="node.additional.price.amount == 0">FREE</span>
                                 <span v-else-if="node.additional.price.amount == -1">PAYG</span>
                                 <span v-else><i class="bi bi-cash-stack"></i> @#node.additional.price.amount#@@#(node.additional.price.cycle ? '/' + node.additional.price.cycle : '')#@</span>           
                             </span>
-                            <span v-if="node.additional && node.additional.remaining.endDate" class="plan enddate">
+                            <span v-if="node.additional && node.additional.remaining && node.additional.remaining.startDate" class="plan enddate">
+                                <i class="bi bi-calendar-check"></i>
+                                <span>@#new Date(node.additional.remaining.startDate).toISOString().split('T')[0]#@</span>
+                            </span>
+                            <span v-if="node.additional && node.additional.remaining && node.additional.remaining.endDate" class="plan enddate">
                                 <i class="bi bi-clock-history"></i>
                                 <span v-if="node.additional.remaining.days == 'lifetime'">{{tr "Lifetime"}}</span>
                                 <span v-else-if="node.additional.remaining.days < 0">{{tr "Expired"}}</span>
