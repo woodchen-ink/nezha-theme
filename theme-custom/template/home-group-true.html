@@ -5,20 +5,19 @@
         <th colspan="16" style="border:none;">@#(group.Tag!==''?group.Tag:'{{tr "Default"}}')#@</th>
     </tr>
     <tr class="node-group-cell">
-        <th class="node-cell status center">{{tr "Status"}}</th>
-        <th class="node-cell name center">{{tr "Name"}}</th>
-        <th class="node-cell os center">{{tr "Platform"}}</th>
-        <th class="node-cell location center">{{tr "Location"}}</th>
-        <th class="node-cell uptime center">{{tr "Uptime"}}</th>
-        <th class="node-cell load center">{{tr "Load"}}</th>
-        <th class="node-cell network center">{{tr "NetSpeed"}}↓|↑</th>
-        <!-- <th class="node-cell traffic center">{{tr "NetTransfer"}}↓|↑</th> -->
-        <th class="node-cell conncount center">{{tr "ConnCount"}}</th>
-        <th class="node-cell processcount center">{{tr "ProcessCount"}}</th>
-        <th class="node-cell cpu center">{{tr "CpuUsed"}}</th>
-        <th class="node-cell memory center">{{tr "MemUsed"}}</th>
-        <th class="node-cell swap center">{{tr "SwapUsed"}}</th>
-        <th class="node-cell hdd center">{{tr "DiskUsed"}}</th>
+        <th class="node-cell status center" style="width: 4%;">{{tr "Status"}}</th>
+        <th class="node-cell name center" style="width: 8%;">{{tr "Name"}}</th>
+        <th class="node-cell os center" style="width: 7%;">{{tr "Platform"}}</th>
+        <th class="node-cell location center" style="width: 7%;">{{tr "Location"}}</th>
+        <th class="node-cell uptime center" style="width: 7%;">{{tr "Uptime"}}</th>
+        <th class="node-cell load center" style="width: 6%;">{{tr "Load"}}</th>
+        <th class="node-cell network center" style="width: 9%;">{{tr "NetSpeed"}}↓|↑</th>
+        <th class="node-cell conncount center" style="width: 8%;">{{tr "ConnCount"}}</th>
+        <th class="node-cell processcount center" style="width: 7%;">{{tr "ProcessCount"}}</th>
+        <th class="node-cell cpu center" style="width: 10%;">{{tr "CpuUsed"}}</th>
+        <th class="node-cell memory center" style="width: 10%;">{{tr "MemUsed"}}</th>
+        <th class="node-cell swap center" style="width: 10%;">{{tr "SwapUsed"}}</th>
+        <th class="node-cell hdd center" style="width: 10%;">{{tr "DiskUsed"}}</th>
     </tr>
     </thead>
     <tbody id="servers">
@@ -45,7 +44,6 @@
             <td style="text-align: center;" class="node-cell uptime">@#node.uptime#@</td>
             <td style="text-align: center;" class="node-cell load">@#node.load#@</td>
             <td style="text-align: center;" class="node-cell network">@#node.network#@</td>
-            <!-- <td style="text-align: center;" class="node-cell traffic">@#node.traffic#@</td> -->
             <td style="text-align: center;" class="node-cell conncount"> TCP @#node.state.TcpConnCount#@ / UDP @#node.state.UdpConnCount#@</td>
             <td style="text-align: center;" class="node-cell processcount"> @#node.state.ProcessCount#@</td>
             <td class="node-cell cpu">

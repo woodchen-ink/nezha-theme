@@ -463,3 +463,22 @@ footer p{
         padding-left: unset !important;
     }
 }
+
+.node-cell {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 8px !important;
+    box-sizing: border-box;
+}
+
+td.node-cell {
+    width: inherit;  /* 继承th设置的宽度 */
+    max-width: none;
+}
+
+.table > thead > tr.node-group-cell > th {
+    padding: 8px;
+    vertical-align: middle;
+    box-sizing: border-box;
+}
