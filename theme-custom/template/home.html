@@ -41,6 +41,7 @@
             servers: [],
             nodesTag: [],
             nodesNoTag: [],
+            additional: {},
             chartDataList: [],
             ws: null,
             language: {{.Conf.Language}},
@@ -70,17 +71,32 @@
         mixins: [mixinsVue],
         created() {
             this.servers = JSON.parse('{{.Servers}}').servers;
+            this.additional = this.initAdditional(this.servers);
             if(this.showGroup) {
                 this.nodesTag = this.groupingData(this.handleNodes(this.servers),"Tag");
+                this.nodesTag.forEach(group => {
+                    group.data.forEach(item => {
+                        const additionalData = this.additional[item.ID];
+                        if (additionalData) {
+                            item.additional = additionalData; // 添加 additional 属性
+                        }
+                    });
+                });
             } else {
                 this.nodesNoTag = this.handleNodes(this.servers);
+                this.nodesNoTag.forEach(item => {
+                    const additionalData = this.additional[item.ID];
+                    if (additionalData) {
+                        item.additional = additionalData; // 添加 additional 属性
+                    }
+                });
             }
             this.initCountryMap().then(countryMap => {
                 this.countryMap = countryMap;
                 this.countryNameMap = this.initCountryNameMap();
                 this.countryServer = this.initCountryServer();
                 this.countryMapChartData = this.initCountryMapChartData();
-            })
+            });
         },
         mounted() {
             // 初始化时建立WebSocket连接
@@ -97,6 +113,60 @@
             });
         },
         methods: {
+            initAdditional(servers) {
+                let nodes = {};
+                servers?.forEach(server => {
+                    //处理异常
+                    if (!server.PublicNote) return;
+
+                    // 初始化节点
+                    nodes[server.ID] = {
+                        "remaining": {},
+                        "price": {},
+                        "plan": {}
+                    };
+
+                    // 处理 billingDataMod 的 remaining 配置
+                    const remainingEndDate = this.getRemainingDays(this.getNoteElementValue(server.PublicNote, "billingDataMod", "endDate"), server.PublicNote, 1);
+                    const remainingFormat = this.getRemainingFormat(server.live, server.PublicNote);
+                    const remainingDays = this.getRemainingDays(this.getNoteElementValue(server.PublicNote, "billingDataMod", "endDate"), server.PublicNote);
+                    const remainingPercent = this.getRemainingPercent(
+                        this.getNoteElementValue(server.PublicNote, "billingDataMod", "startDate"),
+                        this.getNoteElementValue(server.PublicNote, "billingDataMod", "endDate"),
+                        server.PublicNote
+                    );
+                    // 设置 remaining 属性
+                    if (remainingEndDate) nodes[server.ID].remaining.endDate = remainingEndDate;
+                    if (remainingFormat) nodes[server.ID].remaining.format = remainingFormat;
+                    if (remainingDays) nodes[server.ID].remaining.days = remainingDays;
+                    if (remainingPercent) nodes[server.ID].remaining.percent = this.toFixed2(100 - remainingPercent);
+
+                    // 处理 billingDataMod 的 price 配置
+                    const priceAmount = this.getNoteElementValue(server.PublicNote, "billingDataMod", "amount");
+                    const priceCycle = this.getNoteElementValue(server.PublicNote, "billingDataMod", "cycle");
+                    // 设置 price 属性
+                    if (priceAmount) nodes[server.ID].price.amount = priceAmount;
+                    if (priceCycle && priceAmount) nodes[server.ID].price.cycle = priceCycle;
+                    
+                    // 处理 planDataMod 配置
+                    const planBandwidth = this.getNoteElementValue(server.PublicNote, "planDataMod", "bandwidth");
+                    const planTrafficVol = this.getNoteElementValue(server.PublicNote, "planDataMod", "trafficVol");
+                    const planTrafficType = this.getNoteElementValue(server.PublicNote, "planDataMod", "trafficType");
+                    const planIPv4 = this.getNoteElementValue(server.PublicNote, "planDataMod", "IPv4");
+                    const planIPv6 = this.getNoteElementValue(server.PublicNote, "planDataMod", "IPv6");
+                    const planNetworkRoute = this.getNoteElementValue(server.PublicNote, "planDataMod", "networkRoute");
+                    const planExtra = this.getNoteElementValue(server.PublicNote, "planDataMod", "extra");
+                    // 设置 plan 属性
+                    if (planBandwidth) nodes[server.ID].plan.bandwidth = planBandwidth;
+                    if (planTrafficVol) nodes[server.ID].plan.trafficVol = planTrafficVol;
+                    if (planTrafficType) nodes[server.ID].plan.trafficType = planTrafficType;
+                    if (planIPv4) nodes[server.ID].plan.ipv4 = planIPv4 >= 1;
+                    if (planIPv6) nodes[server.ID].plan.ipv6 = planIPv6 >= 1;
+                    if (planNetworkRoute) nodes[server.ID].plan.networkRoute = planNetworkRoute.split(',');
+                    if (planExtra) nodes[server.ID].plan.extra = planExtra.split(',');
+                });
+                return nodes;
+            },
             initCountryMap() {
                 return fetch(this.staticUrl + '/maps/nezha.countrymap.json')
                     .then(response => response.json())
@@ -154,21 +224,30 @@
                     return;
                 }
                 const unit = this.language=='zh-CN' ? '台' : 'servers';
-                const isMobile = this.checkIsMobile();
-                const width = isMobile ? 338 : 1102;
-                const height = isMobile ? 200 : 500;
+                const width = window.innerWidth;
+                const height = 0.95 * window.innerHeight;
                 const backgroundColor = this.theme == "dark" ? '' : '';
                 const inRangeColor = this.theme == "dark" ? '#D2B206' : '#FFDF32';
                 const tooltipBackgroundColor = this.theme == "dark" ? "#ffffff" : '#ffffff';
                 const tooltipBorderColor = this.theme == "dark" ? "#ffffff" : "#ffffff"; 
-                const fontSize = isMobile ? 10 : 12;
-                const fontColor = this.theme == "dark" ? "#000000" : "#000000";     
+                const fontSize = this.isMobile ? 10 : 12;
+                const fontColor = this.theme == "dark" ? "#000000" : "#000000"; 
+                const showLoadingMaskColor = this.theme == "dark" ? 'rgba(28, 29, 38, 1)' : 'rgba(249, 249, 249, 1)';
+                const showLoadingTextColor = this.theme == "dark" ? 'rgba(241, 241, 241, 1)' : 'rgba(0, 0, 0, 1)';
+                const showLoadingColor = inRangeColor;    
                 const chartContainer = document.getElementById('mapChart');
                 const mapChart = echarts.init(chartContainer, '', { // init图表
                     renderer: 'canvas',
                     useDirtyRect: false,
                     width: width,
                     height: height,
+                });
+                mapChart.showLoading({
+                    text: 'loading',
+                    textColor: showLoadingTextColor,
+                    color: showLoadingColor,
+                    maskColor: showLoadingMaskColor,
+                    zlevel: 2
                 });
                 fetch(this.staticUrl + '/maps/' + this.countryMapGeoFile)
                     .then(response => response.json())
@@ -224,7 +303,10 @@
                                 }
                             ]
                         };
-                        mapChart.setOption(option);
+                        setTimeout(() => {
+                            mapChart.hideLoading();
+                            mapChart.setOption(option);
+                        }, 1000);
                     });
             },
             isWindowsPlatform(str) {
@@ -382,8 +464,22 @@
                     }
                     if(this.showGroup) {
                         this.nodesTag = this.groupingData(this.handleNodes(data.servers),"Tag");
+                        this.nodesTag.forEach(group => {
+                            group.data.forEach(item => {
+                                const additionalData = this.additional[item.ID];
+                                if (additionalData) {
+                                    item.additional = additionalData; // 添加 additional 属性
+                                }
+                            });
+                        });
                     } else {
                         this.nodesNoTag = this.handleNodes(data.servers);
+                        this.nodesNoTag.forEach(item => {
+                            const additionalData = this.additional[item.ID];
+                            if (additionalData) {
+                                item.additional = additionalData; // 添加 additional 属性
+                            }
+                        });
                     }
                 }
                 this.ws.onclose = () => {
@@ -404,52 +500,6 @@
                     }else if (platform === "immortalwrt") {
                         platform = "openwrt"
                     }
-                    let additional = {
-                        remaining: {},
-                        price: {},
-                        plan: {}
-                    };
-
-                    if (server.PublicNote) {
-                        // 处理 remaining 配置
-                        const remainingEndDate = this.getRemainingDays(this.getNoteElementValue(server.PublicNote, "billingDataMod", "endDate"), server.PublicNote, 1);
-                        const remainingFormat = this.getRemainingFormat(server.live, server.PublicNote);
-                        const remainingDays = this.getRemainingDays(this.getNoteElementValue(server.PublicNote, "billingDataMod", "endDate"), server.PublicNote);
-                        const remainingPercent = this.getRemainingPercent(
-                            this.getNoteElementValue(server.PublicNote, "billingDataMod", "startDate"),
-                            this.getNoteElementValue(server.PublicNote, "billingDataMod", "endDate"),
-                            server.PublicNote
-                        );
-
-                        if (remainingEndDate) additional.remaining.endDate = remainingEndDate;
-                        if (remainingFormat) additional.remaining.format = remainingFormat;
-                        if (remainingDays) additional.remaining.days = remainingDays;
-                        if (remainingPercent) additional.remaining.percent = this.toFixed2(100 - remainingPercent);
-
-                        // 处理 price 配置
-                        const priceAmount = this.getNoteElementValue(server.PublicNote, "billingDataMod", "amount");
-                        const priceCycle = this.getNoteElementValue(server.PublicNote, "billingDataMod", "cycle");
-                        if (priceAmount) additional.price.amount = priceAmount;
-                        if (priceCycle && priceAmount) additional.price.cycle = priceCycle;
-
-                        // 处理 plan 配置
-                        const planBandwidth = this.getNoteElementValue(server.PublicNote, "planDataMod", "bandwidth");
-                        const planTrafficVol = this.getNoteElementValue(server.PublicNote, "planDataMod", "trafficVol");
-                        const planTrafficType = this.getNoteElementValue(server.PublicNote, "planDataMod", "trafficType");
-                        const planIPv4 = this.getNoteElementValue(server.PublicNote, "planDataMod", "IPv4");
-                        const planIPv6 = this.getNoteElementValue(server.PublicNote, "planDataMod", "IPv6");
-                        const planNetworkRoute = this.getNoteElementValue(server.PublicNote, "planDataMod", "networkRoute");
-                        const planExtra = this.getNoteElementValue(server.PublicNote, "planDataMod", "extra");
-
-                        if (planBandwidth) additional.plan.bandwidth = planBandwidth;
-                        if (planTrafficVol) additional.plan.trafficVol = planTrafficVol;
-                        if (planTrafficType) additional.plan.trafficType = planTrafficType;
-                        if (planIPv4) additional.plan.ipv4 = planIPv4 >= 1;
-                        if (planIPv6) additional.plan.ipv6 = planIPv6 >= 1;
-                        if (planNetworkRoute) additional.plan.networkRoute = planNetworkRoute.split(',');
-                        if (planExtra) additional.plan.extra = planExtra.split(',');
-                    }
-
                     let node = {
                         ID: server.ID,
                         name: server.Name,
@@ -468,7 +518,6 @@
                         host: server.Host,
                         lastActive: server.LastActive,
                         Tag: server.Tag,
-                        additional: additional
                     }
                     nodes.push(node)
                 })
@@ -493,7 +542,7 @@
                 }
             },
             getTemperature(temperatureList, sensorList) {
-                // 将 sensorList ���的所有项转换为小写
+                // 将 sensorList 中的所有项转换为小写
                 const lowerCaseSensorList = sensorList.map(sensor => sensor.toLowerCase());
 
                 // 合并过滤逻辑：过滤出 Temperature 不为 0 且 Name 在 sensorList 中的元素（忽略大小写）
@@ -517,115 +566,199 @@
                 // 如果所有元素的 Temperature 都为 0，则返回一个默认值 0
                 return 0;
             },
-            showCharts(event, id) {
-                const chartContainer = this.$refs[`chart${id}`][0];
-                const chartboxShow = chartContainer.getAttribute('chartbox-show');
-                chartContainer.setAttribute('chartbox-show', chartboxShow === '0' ? '1' : '0');
-                const isAriaExpandedFalse = event.currentTarget.getAttribute('aria-expanded') === 'false';
-                if (!isAriaExpandedFalse) return;
+            showCharts(id,changeChartboxShow=true) {
+                const chartContainer = document.getElementById(`chart-${id}`);
+                if (!chartContainer) {
+                    console.warn(`Chart container with id chart-${id} not found`);
+                    return;
+                }
+
+                if(changeChartboxShow){
+                    const chartboxShow = chartContainer.getAttribute('chartbox-show') || '0';
+                    chartContainer.setAttribute('chartbox-show', chartboxShow === '0' ? '1' : '0');
+                    
+                    const collapseContainer = document.getElementById(`r${id}`);
+                    if (!collapseContainer) {
+                        console.warn(`Collapse container with id r${id} not found`);
+                        return;
+                    }
+                    
+                    const isAriaExpandedFalse = collapseContainer.getAttribute('aria-expanded') === 'false';
+                    if (!isAriaExpandedFalse) return;
+                }
                 // 发起数据请求
                 const url = `/api/v1/monitor/${id}`;
                 fetch(url)
                     .then(response => response.json())
                     .then(data => {
                         if (data.result) { // 数据请求成功，更新数据并渲染图表
-                            this.chartDataList[id - 1] = data.result;
+                            this.chartDataList[id] = data.result;
                             this.$nextTick(() => {
                                 this.renderCharts(id);
                             });
                         } else {
-                            console.log('this agent (id:'+ id + ') has no monitor.');
+                            console.log('this server (id:'+ id + ') has no monitor.');
                         }
                     })
                     .catch(error => {
-                        console.error('Error fetching data:', error);
+                        console.log('Error fetching data:', error);
                     });
             },
             renderCharts(id, reload = false) {
-                if (!this.chartDataList[id - 1]) return;
-                const chartData = this.chartDataList[id - 1];
-                const chartContainer = this.$refs[`chart${id}`][0];
-                if (reload) { //点击切换亮色/暗色风格模式时,重新载入echarts图表的逻辑,
-                    // 第一步,查找已经渲染出的图表容器,并销毁它
+                if (!this.chartDataList[id]) return;
+                const chartData = this.chartDataList[id];
+                const chartContainer = document.getElementById(`chart-${id}`);
+                if (reload) {
                     const existingChart = echarts.getInstanceByDom(chartContainer);
                     if (existingChart) existingChart.dispose();
-                    // 第二步,如果图表容器处于不可见状态chartboxShow=0,不重新渲染出新的图表,
-                    // 如果图表容器处于可见状态chartboxShow=1,重新渲染出新的图表
                     const chartboxShow = chartContainer.getAttribute('chartbox-show');
                     if ( chartboxShow === '0' ) return; 
                 }
-                // 定义图表参数值
                 const MaxTCPPingValue = {{.Conf.MaxTCPPingValue}} ? {{.Conf.MaxTCPPingValue}} : 300;
-                const isMobile = this.checkIsMobile();
-                const fontSize = isMobile ? 10 : 14;
-                const gridLeft = isMobile ? 25 : 36;
-                const gridRight = isMobile ? 5 : 20;
-                const legendLeft = isMobile ? 'center' : 'center';
-                const legendTop = isMobile ? 5 : 5;
-                const legendPadding= isMobile ? [5,0,5,0] : [5,0,5,0];
+                const fontSize = this.isMobile ? 10 : 14;
+                const gridLeft = (MaxTCPPingValue > 500) ? (this.isMobile ? 36 : 42) : (this.isMobile ? 25 : 36);
+                const gridRight = this.isMobile ? 5 : 20;
+                const legendLeft = this.isMobile ? 'center' : 'center';
+                const legendTop = this.isMobile ? 5 : 5;
+                const legendPadding= this.isMobile ? [5,0,5,0] : [5,0,5,0];
                 const systemDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
                 const theme = localStorage.getItem("theme") ? localStorage.getItem("theme") : systemDarkMode;
-                const chartTheme = theme == "dark" ? "dark" : "default";
-                const fontColor = theme == "dark" ? "#f1f1f1" : "#000000";
+                const chartTheme = this.theme == "dark" ? "dark" : "default";
+                const fontColor = this.theme == "dark" ? "#f1f1f1" : "#000000";
                 const backgroundColor = theme == "dark" ? '' : '';
-                const tooltipBackgroundColor = theme == "dark" ? "#1C1D26" : '#ffffff';
-                const tooltipBorderColor = theme == "dark" ? "#31363B" : "#ffffff";
-                // 渲染图表
-                const chart = echarts.init(chartContainer, chartTheme, {
+                const tooltipBackgroundColor = this.theme == "dark" ? (this.semiTransparent ? "rgba(28,29,38,0.85)" : "rgba(28,29,38,1)") : (this.semiTransparent ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,1)");
+                const tooltipBorderColor = this.theme == "dark" ? (this.semiTransparent ? "rgba(28,29,38,0.9)" : "rgba(28,29,38,1)") : (this.semiTransparent ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,1)");
+                const lineStyleWidth = this.isMobile ? 1 : 2;
+                const splitLineWidth = this.isMobile ? 0.5 : 1;
+                const markLineItemStyleOpacity = this.semiTransparent ? 1 : 0.75;
+                const markLineLineStyleWidth = this.isMobile ? 0.15 : 0.3;
+                const chart = echarts.init(chartContainer, chartTheme, { // init图表
                     renderer: 'canvas',
                     useDirtyRect: false,
                     width: 'auto',
-                    height: 300,
+                    height: 300
                 });
-                const xAxisData = chartData[0].created_at.map(time => new Date(time).toLocaleString());
-                const seriesData = chartData.map(item => {
+                let legendData = [];
+                let seriesData = [];
+                chartData.forEach((item,key)=> {
                     let loss = 0;
-                    const data = item.avg_delay.map((avgDelay, index) => {                        
-                        if(avgDelay > 0 && avgDelay < MaxTCPPingValue){
-                            loss += avgDelay > 0.9 * MaxTCPPingValue ? 1 : 0;
-                            return [item.created_at[index], avgDelay.toFixed(2)];
-                        }else{
+                    let totalLossRate = 0;
+                    let legendName = '';
+                    let data = { main: [], markLine: []};
+                    item.avg_delay.forEach((avgDelay, index) => {
+                        const threshold = 0.9 * MaxTCPPingValue; // 定义阀值,用于判断是否丢包
+                        // 定义丢包 1. avgDelay==0  2. avgDelay>=MaxTCPPingValue 3. avgDelay>=threshold
+                        if(avgDelay == 0 || avgDelay >= MaxTCPPingValue){ //绝对丢包
                             loss += 1;
+                            const lossrate = 100 * loss / (index + 1);
+                            if(lossrate != 100) {
+                                data['markLine'].push({
+                                    xAxis: item.created_at[index],
+                                    label: { show: false },
+                                    emphasis: { disabled: true },
+                                    lineStyle: { type: "solid" }
+                                });
+                            }
+                        } else if (avgDelay >= threshold && avgDelay < MaxTCPPingValue){ // 相对丢包
+                            loss += 1;
+                            const lossrate = 100 * loss / (index + 1);
+                            if(lossrate != 100) {
+                                data['main'].push(
+                                    [item.created_at[index], avgDelay, lossrate]
+                                );
+                                data['markLine'].push({
+                                    xAxis: item.created_at[index],
+                                    label: { show: false },
+                                    emphasis: { disabled: true },
+                                    lineStyle: { type: "solid" }
+                                });
+                            }
+                        } else { // 未丢包
+                            const lossrate = 100 * loss / (index + 1);
+                            data['main'].push(
+                                [item.created_at[index], avgDelay, lossrate]
+                            );
                         }
                     });
-                    const lossRate = ((loss / item.created_at.length) * 100).toFixed(1);
-                    item.monitor_name = item.monitor_name.includes("%") ? item.monitor_name : `${item.monitor_name} ${lossRate}%`;
-                    return {
-                        name: item.monitor_name,
-                        type: 'line',
-                        smooth: true,
-                        symbol: 'none',
-                        data: data,
-                        connectNulls: true
-                    };
+                    totalLossRate = ((loss / item.created_at.length) * 100).toFixed(1);
+                    legendName = `${item.monitor_name} ${totalLossRate}%`;
+                    legendData.push(legendName);
+                    seriesData.push(
+                        {
+                            name: legendName,
+                            type: 'line',
+                            smooth: true,
+                            symbol: 'none',
+                            connectNulls: true,
+                            legendHoverLink: false,
+                            emphasis: {
+                                disabled: true
+                            },
+                            lineStyle: {
+                                width: lineStyleWidth
+                            },  
+                            data: data['main'],
+                            markLine: {
+                                symbol: "none",
+                                symbolSize :0,
+                                data: data['markLine'],
+                                itemStyle: { 
+                                    opacity: markLineItemStyleOpacity
+                                },
+                                lineStyle:{
+                                    width: markLineLineStyleWidth
+                                }
+                            }
+                        }
+                    );
                 });
-
-                const legendData = chartData.map(item => item.monitor_name);
                 const maxLegendsPerRowMobile = localStorage.getItem("maxLegendsPerRowMobile") ? localStorage.getItem("maxLegendsPerRowMobile") : 3;
                 const maxLegendsPerRowPc = localStorage.getItem("maxLegendsPerRowPc") ? localStorage.getItem("maxLegendsPerRowPc") : 6;
-                const autoIncrement = Math.floor((legendData.length - 1) / (isMobile ? maxLegendsPerRowMobile : maxLegendsPerRowPc)) * (isMobile ? 20 : 28)
+                const autoIncrement = Math.floor((legendData.length - 1) / (this.isMobile ? maxLegendsPerRowMobile : maxLegendsPerRowPc)) * (this.isMobile ? 20 : 28);            
                 const height = 300 + autoIncrement;
                 const gridTop = 40 + autoIncrement;
-                const legendIcon = isMobile ? 'rect' : ""; 
-                const itemWidth = isMobile ? 10 : 25;
-                const itemHeight = isMobile ? 10 : 14;
+                const legendIcon = this.isMobile ? 'rect' : ""; 
+                const itemWidth = this.isMobile ? 10 : 25;
+                const itemHeight = this.isMobile ? 10 : 14;
                 chart.resize({
                     width: 'auto',
                     height: height
                 });
-
                 const option = {
+                    color: this.colors,
                     backgroundColor: backgroundColor,
-                    title: {
-                        show: false
+                    textStyle: {
+                        fontSize: fontSize,
+                        color: fontColor
                     },
-                    tooltip: {
-                        trigger: 'axis',
-                        backgroundColor: tooltipBackgroundColor,
-                        borderColor: tooltipBorderColor,
-                        textStyle: {
-                            fontSize: fontSize,
-                            color: fontColor
+                    grid: {
+                        top: gridTop,
+                        left: gridLeft,
+                        right: gridRight,
+                    },
+                    title: {
+                        show: false,
+                    },
+                    series: seriesData.flat(),
+                    xAxis: {
+                        type: 'time',
+                        axisLabel: {
+                            textStyle: {
+                                fontSize: fontSize
+                            }
+                        }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        axisLabel: {
+                            textStyle: {
+                                fontSize: fontSize
+                            }
+                        },
+                        splitLine: {
+                            lineStyle: {
+                                width: splitLineWidth
+                            }
                         }
                     },
                     legend: {
@@ -643,21 +776,26 @@
                         itemWidth: itemWidth,
                         itemHeight: itemHeight,
                     },
-                    xAxis: {
-                        type: 'time',
-                        data: xAxisData,
-                        axisLabel: {
-                            textStyle: {
-                                fontSize: fontSize
-                            }
-                        }
-                    },
-                    yAxis: {
-                        type: 'value',
-                        axisLabel: {
-                            textStyle: {
-                                fontSize: fontSize
-                            }
+                    tooltip: {
+                        trigger: 'axis',
+                        backgroundColor: tooltipBackgroundColor,
+                        borderColor: tooltipBorderColor,
+                        textStyle: {
+                            fontSize: fontSize,
+                            color: fontColor
+                        },
+                        formatter: function (params) {
+                            let tooltipContent = '';
+                            const formattedTime = new Date(params[0].value[0]).toLocaleString(); 
+                            tooltipContent += `<span style="line-height:2em">${formattedTime}</span><br>`;
+                            params.forEach(param => {
+                                const formattedTime = new Date(param.value[0]).toLocaleString();
+                                if (!param.seriesName.includes('stack')) {
+                                    const name = param.seriesName.replace(/\s\d+(\.\d+)?%$/, '');
+                                    tooltipContent += `<span style="line-height:2em">${param.marker} ${name} ${param.value[2].toFixed(1)}% ${param.value[1].toFixed(2)}</span><br>`;
+                                }
+                            });
+                            return tooltipContent;
                         }
                     },
                     dataZoom: [
@@ -666,24 +804,14 @@
                             start: 0,
                             end: 100
                         }
-                    ],
-                    series: seriesData,
-                    textStyle: {
-                        fontSize: fontSize,
-                        color: fontColor
-                    },
-                    grid: {
-                        top: gridTop,
-                        left: gridLeft,
-                        right: gridRight
-                    }
+                    ]
                 };
                 chart.setOption(option);
             },
-            reloadCharts() { // 重新加载所有图表
+            reloadCharts() {
                 this.servers.forEach(node => {
                     const id = node.ID;
-                    const chartData = this.chartDataList[id - 1];
+                    const chartData = this.chartDataList[id];
                     if (chartData) {
                         this.renderCharts(id,true);
                     }
@@ -702,52 +830,358 @@
                 // return coreInfo + ghzInfo;
                 return cores ? cores[1] + (cores[2].charAt(0).toUpperCase() + ' Core'): '?';
             },
-            getNoteElementValue(note, mod, key) {
+            getNoteElementValue(string, elementName, childElementName) {
+                let obj;
+
                 try {
-                    const regex = new RegExp(`${mod}\\[${key}\\]:\\s*([^\\n]+)`);
-                    const match = note.match(regex);
-                    return match ? match[1].trim() : null;
+                    obj = JSON.parse(string);
                 } catch (e) {
-                    return null;
+                    return null; 
+                }
+
+                if (!elementName) return null;
+
+                if (childElementName) {
+                    return obj[elementName] && childElementName in obj[elementName] ? obj[elementName][childElementName] : null;
+                } else {
+                    return elementName in obj ? obj[elementName] : null;
                 }
             },
-            
-            getRemainingDays(endDate, note, returnDate) {
-                if (!endDate) return null;
-                try {
-                    if (endDate.toLowerCase() === 'lifetime') return 'lifetime';
-                    const end = new Date(endDate);
-                    if (returnDate) return end;
-                    const now = new Date();
-                    const diffTime = end - now;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    return diffDays;
-                } catch (e) {
+            getBillingCycle(billingCycle) { 
+                // 统一转换为小写进行比较
+                const cycle = billingCycle.toLowerCase();
+
+                switch (cycle) {
+                    case '月':
+                    case 'mo':
+                    case 'month':
+                    case 'monthly':
+                    case 'm':
+                        return "M";
+                    case '季':
+                    case 'quarterly':
+                    case 'q':
+                        return "Q";                        
+                    case '半':
+                    case '半年':
+                    case 'half':
+                    case 'semi-annually':
+                    case 'h':
+                        return "H";                        
+                    case '年':
+                    case 'yr':
+                    case 'year':
+                    case 'annually':
+                    case 'y':
+                        return "Y";
+                    default:
+                        return null;
+                }                
+            },
+            getAdjustTimezone(reference, target) {
+                // 获取时区
+                const referenceTimezoneOffset = reference.getTimezoneOffset(); 
+                const targetTimezoneOffset = target.getTimezoneOffset();
+
+                // 计算时区差异
+                const timezoneDifference = (referenceTimezoneOffset - targetTimezoneOffset) * 60 * 1000;
+
+                // 将 target 日期调整到 reference 时区
+                return new Date(target.getTime() + timezoneDifference);
+            },
+            getAutoRenewalEndDate(endDate, billingCycle) {
+                const expiration = new Date(endDate);
+                const current = this.getAdjustTimezone(new Date(endDate), new Date());
+
+                // 如果 expiration 无效，记录日志
+                if (isNaN(expiration.getTime())) {
+                    console.log("getAutoRenewalEndDate: Invalid expiration format");
+                }
+
+                const result = {
+                    flag: 1,  // 1表示需要更新
+                    check: 0, // 判断逻辑标记
+                    count: 0  // 周期累计计数
+                };
+
+                // 如果当前时间还没到到期时间，直接返回到期时间
+                if (current < expiration) {
+                    result.flag = 0;
+                    result.date = expiration;
+                    return result;
+                }
+
+                let nextExpiration = new Date(expiration); // 初始化为原到期时间
+                let newExpirationMonth = expiration.getMonth(); // 获取expiration初始月份
+
+                switch (billingCycle.toUpperCase()) {
+                    case 'M': // 月度
+                        nextExpiration.setFullYear(current.getFullYear());
+
+                        const monthCheck = current < new Date(current.getFullYear(), current.getMonth(), expiration.getDate());
+
+                        // 检查当前月是否在有效期内
+                        if (monthCheck) {
+                            nextExpiration.setMonth(current.getMonth());
+                            result.check = 1;
+                        } else {
+                            nextExpiration.setMonth(current.getMonth() + 1);
+                            result.check = 2;
+                        }
+                        break;
+
+                    case 'Q': // 季度
+                        nextExpiration.setFullYear(current.getFullYear());
+
+                        // 每次增加 3 个月，直到新的月份大于当前月份
+                        while (newExpirationMonth < current.getMonth()) {
+                            newExpirationMonth += 3;
+                            result.count += 1;
+                        }
+
+                        // nextExpiration设置获取到的新月份
+                        nextExpiration.setMonth(newExpirationMonth);
+
+                        const quarterlyCheck = current < nextExpiration;
+
+                        // 检查新月份是否在有效期内
+                        if (quarterlyCheck) {
+                            result.check = 3;
+                        } else {
+                            nextExpiration.setMonth(current.getMonth() + 3);
+                            result.check = 4;
+                            result.count += 1;
+                        }
+                        break;
+
+                    case 'H': // 半年
+                        nextExpiration.setFullYear(current.getFullYear());
+                
+                        // 每次增加 6 个月，直到新的月份大于当前月份
+                        while (newExpirationMonth < current.getMonth()) {
+                            newExpirationMonth += 6;
+                            result.count += 1;
+                        }
+
+                        // nextExpiration设置获取到的新月份
+                        nextExpiration.setMonth(newExpirationMonth);
+
+                        const halfCheck = current < nextExpiration;
+
+                        // 检查新月份是否在有效期内
+                        if (halfCheck) {
+                            result.check = 5;
+                        } else {
+                            nextExpiration.setMonth(current.getMonth() + 6);
+                            result.check = 6;
+                            result.count += 1;
+                        }    
+                        break;
+
+                    case 'Y': // 年度
+                        const yearCheck = current < new Date(current.getFullYear(), expiration.getMonth(), expiration.getDate());
+
+                        // 如果当前时间比这一年有效期早，则到期为本年
+                        if (yearCheck) {
+                            nextExpiration.setFullYear(current.getFullYear());
+                            result.check = 7;
+                        } else {
+                            // 否则推到下一年
+                            nextExpiration.setFullYear(current.getFullYear() + 1);
+                            result.check = 8;
+                        }
+                        break;
+
+                    default:
+                        throw new Error("Invalid billing cycle");
+                }
+
+                // 保持原到期时间的时分秒
+                nextExpiration.setHours(expiration.getHours());
+                nextExpiration.setMinutes(expiration.getMinutes());
+                nextExpiration.setSeconds(expiration.getSeconds());
+
+                result.date = nextExpiration;
+
+                return result;
+            },
+            getAutoRenewalStartDate(flag, startDate, check, count) {
+                //1.判断什么时候改变 2.如何改变
+                const start = new Date(startDate);
+                const current = this.getAdjustTimezone(start, new Date());
+
+                // 检查 startDate 格式是否有效，若无效返回 null
+                if (isNaN(start.getTime())) {
+                    console.log("getAutoRenewalStartDate: Invalid startDate format");
+                }
+
+                // 如果 flag 为 0，直接返回开始日期
+                if (flag === 0) {
+                    return start;
+                } 
+
+                // 初始化新的开始日期
+                const newStart = new Date(start);
+
+                switch (check) {
+                    case 1: // 处理月份：设置为上个月
+                        newStart.setFullYear(current.getFullYear());
+                        newStart.setMonth(current.getMonth() - 1);
+                        break;
+
+                    case 2: // 处理月份：设置为当前月
+                        newStart.setFullYear(current.getFullYear());
+                        newStart.setMonth(current.getMonth());
+                        break;
+
+                    case 3:
+                    case 4: // 处理季度
+                        newStart.setFullYear(current.getFullYear());
+                        newStart.setMonth(start.getMonth() + 3 * count);
+                        break;
+
+                    case 5:
+                    case 6: // 处理半年
+                        newStart.setFullYear(current.getFullYear());
+                        newStart.setMonth(start.getMonth() + 6 * count);
+                        break;
+
+                    case 7: // 处理年份：设置为上一年
+                        newStart.setFullYear(current.getFullYear() - 1);
+                        break;
+
+                    case 8: // 处理年份：保持当前年份
+                        newStart.setFullYear(current.getFullYear());
+                        break;
+
+                    default: // 默认处理：直接返回
+                        return;
+                }
+
+                return newStart;
+            },
+            getRemainingFormat(online, note) {
+                if (!note) return null;
+                const startDate = this.getNoteElementValue(note, "billingDataMod", "startDate");
+                const endDate = this.getNoteElementValue(note, "billingDataMod", "endDate");
+
+                // 检查 startDate 和 endDate 是否有效
+                if (!startDate || !endDate || typeof startDate !== 'string' || typeof endDate !== 'string') {
+                    return null; // 如果无效，返回 null 或其他错误处理逻辑
+                }
+
+                // 处理特殊时间格式
+                if (startDate.includes('0000-00-00') || endDate.includes("0000-00-00")) {
+                    return this.formatPercents(online, this.toFixed2(100));
+                }
+
+                // 检查 startDate 和 endDate 是否为合法的Date
+                if (isNaN(new Date(startDate).getTime()) || isNaN(new Date(endDate).getTime())) {
+                    return {
+                        "class": "",
+                        "style": "width: 0%",
+                        "percent": "0"
+                    }
+                }
+
+                //处理特殊时间格式
+                const percent = this.getRemainingPercent(startDate, endDate, note);
+                return this.formatPercents(online, this.toFixed2(percent));                    
+                
+            },
+            getRemainingDays(endDate, note, type) {
+                // 检查 endDate 是否有效
+                if (!endDate || typeof endDate !== 'string') {
                     return null;
                 }
+
+                // 处理特殊时间格式
+                if (endDate.includes("0000-00-00")) {
+                    return "lifetime";
+                }
+
+                // 检查 endDate 是否为合法的Date
+                if (isNaN(new Date(endDate).getTime())) {
+                    return  type === 1 ? null : "NaN";
+                }
+                
+                // 获取当前时间，并调整时区
+                const currentTime = this.getAdjustTimezone(new Date(endDate), new Date());
+
+                // 获取计费周期和自动续订日期
+                const billingCycle = this.getNoteElementValue(note, "billingDataMod", "cycle") || "月";
+                const autoEndDate = this.getAutoRenewalEndDate(
+                    this.getNoteElementValue(note, "billingDataMod", "endDate"),
+                    this.getBillingCycle(billingCycle)
+                );
+
+                // 检查 autoRenewal 状态
+                const autoRenewal = this.getNoteElementValue(note, "billingDataMod", "autoRenewal") == 1;
+
+                // 确定到期时间
+                const end = autoRenewal ? autoEndDate.date : new Date(endDate);
+
+                // 直接返回处理后的到期时间
+                if (type === 1) return end;
+
+                // 计算剩余天数
+                const timeDiff = end - currentTime;
+                const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+
+                return daysDiff;
             },
-            
-            getRemainingFormat(live, note) {
-                if (!live) return 'error';
-                const days = this.getRemainingDays(this.getNoteElementValue(note, "billingDataMod", "endDate"), note);
-                if (!days) return null;
-                if (days === 'lifetime') return 'success';
-                return days < 0 ? 'error' : days <= 7 ? 'warning' : 'success';
-            },
-            
             getRemainingPercent(startDate, endDate, note) {
-                try {
-                    if (!startDate || !endDate) return null;
-                    if (endDate.toLowerCase() === 'lifetime') return 0;
-                    const start = new Date(startDate);
-                    const end = new Date(endDate);
-                    const now = new Date();
-                    const total = end - start;
-                    const elapsed = now - start;
-                    return (elapsed / total) * 100;
-                } catch (e) {
+                // 检查 startDate 和 endDate 是否为有效字符串并处理特殊格式
+                if (!startDate || !endDate || typeof startDate !== 'string' || typeof endDate !== 'string') {
                     return null;
                 }
+
+                // 处理特殊时间格式
+                if (startDate.includes("0000-00-00") || endDate.includes("0000-00-00")) {
+                    return 100;
+                }
+
+                // 检查 startDate 和 endDate 是否为合法的Date
+                if (isNaN(new Date(startDate).getTime()) || isNaN(new Date(endDate).getTime())) {
+                    return "NaN";
+                }
+                
+                // 获取当前时间并调整时区
+                const now = this.getAdjustTimezone(new Date(endDate), new Date());
+
+                // 获取计费周期
+                const billingCycle = this.getNoteElementValue(note, "billingDataMod", "cycle") || "月";
+
+                // 自动获取结束日期
+                const autoEndDate = this.getAutoRenewalEndDate(
+                    this.getNoteElementValue(note, "billingDataMod", "endDate"),
+                    this.getBillingCycle(billingCycle)
+                );
+
+                // 自动获取开始日期
+                const autoStartDate = autoEndDate.flag == 1
+                    ? this.getAutoRenewalStartDate(autoEndDate.flag, this.getNoteElementValue(note, "billingDataMod", "startDate"), autoEndDate.check, autoEndDate.count)
+                    : new Date(startDate);
+                
+                // 计算开始和结束时间
+                const autoRenewal = this.getNoteElementValue(note, "billingDataMod", "autoRenewal") == 1;
+                const start = autoRenewal ? autoStartDate : new Date(startDate);
+                const end = autoRenewal ? autoEndDate.date : new Date(endDate);
+
+                // 计算剩余百分比
+                if (now < start) {
+                    return 0.01; //避免当条件判断!percent被过滤
+                }
+                if (now >= end) {
+                    return 100;
+                }
+
+                const totalDuration = end - start;
+                const elapsedDuration = now - start;
+                const percent = (elapsedDuration / totalDuration) * 100;
+
+                // 确保百分比在 0-100 之间
+                return Math.min(Math.max(percent, 0), 100);
             }
         }
     })

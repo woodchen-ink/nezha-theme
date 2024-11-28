@@ -4,7 +4,7 @@ body {
     background-position: top !important;
     background-repeat: no-repeat !important;
     background-size: cover !important;
-    background-image: url(https://random-api.czl.net/pic/all) !important;
+    background-image: url(https://random-api.czl.net/pic/fj) !important;
 }
 
 /* 导航部分 开始*/
@@ -521,4 +521,33 @@ td.node-cell {
 
 .plan.last {
     margin-right: 0;
+}
+
+/* 添加新的样式 */
+.node-cell.price,
+.node-cell.traffic,
+.node-cell.remaining {
+    min-width: 100px;
+}
+
+.node-cell-price-text {
+    font-size: 0.9em;
+}
+
+.node-cell-remaining-days,
+.node-cell-remaining-percent {
+    margin: 0 2px;
+}
+
+.additional {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* 修改计划信息样式 */
+.plan.traffics {  /* 注意这里改成了 traffics */
+    background-color: rgba(255, 152, 0, 0.1);
 }
