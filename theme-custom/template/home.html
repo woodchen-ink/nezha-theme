@@ -404,6 +404,52 @@
                     }else if (platform === "immortalwrt") {
                         platform = "openwrt"
                     }
+                    let additional = {
+                        remaining: {},
+                        price: {},
+                        plan: {}
+                    };
+
+                    if (server.PublicNote) {
+                        // 处理 remaining 配置
+                        const remainingEndDate = this.getRemainingDays(this.getNoteElementValue(server.PublicNote, "billingDataMod", "endDate"), server.PublicNote, 1);
+                        const remainingFormat = this.getRemainingFormat(server.live, server.PublicNote);
+                        const remainingDays = this.getRemainingDays(this.getNoteElementValue(server.PublicNote, "billingDataMod", "endDate"), server.PublicNote);
+                        const remainingPercent = this.getRemainingPercent(
+                            this.getNoteElementValue(server.PublicNote, "billingDataMod", "startDate"),
+                            this.getNoteElementValue(server.PublicNote, "billingDataMod", "endDate"),
+                            server.PublicNote
+                        );
+
+                        if (remainingEndDate) additional.remaining.endDate = remainingEndDate;
+                        if (remainingFormat) additional.remaining.format = remainingFormat;
+                        if (remainingDays) additional.remaining.days = remainingDays;
+                        if (remainingPercent) additional.remaining.percent = this.toFixed2(100 - remainingPercent);
+
+                        // 处理 price 配置
+                        const priceAmount = this.getNoteElementValue(server.PublicNote, "billingDataMod", "amount");
+                        const priceCycle = this.getNoteElementValue(server.PublicNote, "billingDataMod", "cycle");
+                        if (priceAmount) additional.price.amount = priceAmount;
+                        if (priceCycle && priceAmount) additional.price.cycle = priceCycle;
+
+                        // 处理 plan 配置
+                        const planBandwidth = this.getNoteElementValue(server.PublicNote, "planDataMod", "bandwidth");
+                        const planTrafficVol = this.getNoteElementValue(server.PublicNote, "planDataMod", "trafficVol");
+                        const planTrafficType = this.getNoteElementValue(server.PublicNote, "planDataMod", "trafficType");
+                        const planIPv4 = this.getNoteElementValue(server.PublicNote, "planDataMod", "IPv4");
+                        const planIPv6 = this.getNoteElementValue(server.PublicNote, "planDataMod", "IPv6");
+                        const planNetworkRoute = this.getNoteElementValue(server.PublicNote, "planDataMod", "networkRoute");
+                        const planExtra = this.getNoteElementValue(server.PublicNote, "planDataMod", "extra");
+
+                        if (planBandwidth) additional.plan.bandwidth = planBandwidth;
+                        if (planTrafficVol) additional.plan.trafficVol = planTrafficVol;
+                        if (planTrafficType) additional.plan.trafficType = planTrafficType;
+                        if (planIPv4) additional.plan.ipv4 = planIPv4 >= 1;
+                        if (planIPv6) additional.plan.ipv6 = planIPv6 >= 1;
+                        if (planNetworkRoute) additional.plan.networkRoute = planNetworkRoute.split(',');
+                        if (planExtra) additional.plan.extra = planExtra.split(',');
+                    }
+
                     let node = {
                         ID: server.ID,
                         name: server.Name,
@@ -422,6 +468,7 @@
                         host: server.Host,
                         lastActive: server.LastActive,
                         Tag: server.Tag,
+                        additional: additional
                     }
                     nodes.push(node)
                 })
@@ -446,7 +493,7 @@
                 }
             },
             getTemperature(temperatureList, sensorList) {
-                // 将 sensorList 中的所有项转换为小写
+                // 将 sensorList ���的所有项转换为小写
                 const lowerCaseSensorList = sensorList.map(sensor => sensor.toLowerCase());
 
                 // 合并过滤逻辑：过滤出 Temperature 不为 0 且 Name 在 sensorList 中的元素（忽略大小写）
@@ -654,6 +701,53 @@
     
                 // return coreInfo + ghzInfo;
                 return cores ? cores[1] + (cores[2].charAt(0).toUpperCase() + ' Core'): '?';
+            },
+            getNoteElementValue(note, mod, key) {
+                try {
+                    const regex = new RegExp(`${mod}\\[${key}\\]:\\s*([^\\n]+)`);
+                    const match = note.match(regex);
+                    return match ? match[1].trim() : null;
+                } catch (e) {
+                    return null;
+                }
+            },
+            
+            getRemainingDays(endDate, note, returnDate) {
+                if (!endDate) return null;
+                try {
+                    if (endDate.toLowerCase() === 'lifetime') return 'lifetime';
+                    const end = new Date(endDate);
+                    if (returnDate) return end;
+                    const now = new Date();
+                    const diffTime = end - now;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    return diffDays;
+                } catch (e) {
+                    return null;
+                }
+            },
+            
+            getRemainingFormat(live, note) {
+                if (!live) return 'error';
+                const days = this.getRemainingDays(this.getNoteElementValue(note, "billingDataMod", "endDate"), note);
+                if (!days) return null;
+                if (days === 'lifetime') return 'success';
+                return days < 0 ? 'error' : days <= 7 ? 'warning' : 'success';
+            },
+            
+            getRemainingPercent(startDate, endDate, note) {
+                try {
+                    if (!startDate || !endDate) return null;
+                    if (endDate.toLowerCase() === 'lifetime') return 0;
+                    const start = new Date(startDate);
+                    const end = new Date(endDate);
+                    const now = new Date();
+                    const total = end - start;
+                    const elapsed = now - start;
+                    return (elapsed / total) * 100;
+                } catch (e) {
+                    return null;
+                }
             }
         }
     })

@@ -135,13 +135,13 @@ body {
     padding: 20px;
     border-radius: 5px;
     margin-bottom: 20px;
-    /* background-color: rgba(0, 0, 0, 0.5) !important; 黑色背景，30% 透明度 */
+    width: 100%;
 }
 
 .table {
-    margin-bottom: 0;
-    border-collapse: collapse;
-    border-radius: 3px;
+    table-layout: fixed;
+    width: 100%;
+    margin: 0;
 }
 
 .table th, .table td {
@@ -188,10 +188,9 @@ tr.accordion-toggle{
 }
 
 .progress {
-    margin-bottom: 0;
-    display: flex; 
-    align-items: center; 
-    height: 100%;
+    margin: 0;
+    width: 100%;
+    height: 20px;
 }
 
 .progress-bar {
@@ -235,22 +234,16 @@ tr.accordion-toggle{
     margin-right: 0 !important;
 }
 
-.node-cell.network {
-    min-width: 100px;
-    max-width: 100px;
-}
-
-.node-cell.traffic {
-    min-width: 80px;   
-}
-
-.node-cell.conncount{
-    min-width: 50px;
-}
-
-.node-cell.cpu, .node-cell.ram, .node-cell.hdd, .node-cell.memory, .node-cell.swap {
-    min-width: 80px ;
-    max-width: 80px ;
+.node-cell.network,
+.node-cell.traffic,
+.node-cell.conncount,
+.node-cell.cpu,
+.node-cell.ram,
+.node-cell.hdd,
+.node-cell.memory,
+.node-cell.swap {
+    min-width: unset;
+    max-width: unset;
 }
 
 .temp-detail {
@@ -481,4 +474,51 @@ td.node-cell {
     padding: 8px;
     vertical-align: middle;
     box-sizing: border-box;
+}
+
+/* 添加计划信息相关样式 */
+.plan {
+    display: inline-flex;
+    align-items: center;
+    margin: 0 5px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background-color: rgba(0,0,0,0.1);
+    font-size: 0.9em;
+}
+
+.plan i {
+    margin-right: 4px;
+}
+
+.plan.price {
+    background-color: rgba(76, 175, 80, 0.1);
+}
+
+.plan.enddate {
+    background-color: rgba(33, 150, 243, 0.1);
+}
+
+.plan.bandwidth {
+    background-color: rgba(156, 39, 176, 0.1);
+}
+
+.plan.traffic {
+    background-color: rgba(255, 152, 0, 0.1);
+}
+
+.plan.ipv4, .plan.ipv6 {
+    background-color: rgba(158, 158, 158, 0.1);
+}
+
+.plan.network-route {
+    background-color: rgba(121, 85, 72, 0.1);
+}
+
+.plan.extra {
+    background-color: rgba(96, 125, 139, 0.1);
+}
+
+.plan.last {
+    margin-right: 0;
 }
