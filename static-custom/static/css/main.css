@@ -144,19 +144,12 @@ body {
     margin: 0;
 }
 
-.table > thead > tr > th,
-.table > tbody > tr > td {
-    width: inherit;
-    max-width: none;
-    box-sizing: border-box;
-}
-
 .table th, .table td {
     text-align: left;
 }
 
 tr.accordion-toggle{
-    cursor:pointer;
+    cursor: pointer;
 }
 
 .table > tbody > tr > td,
@@ -166,8 +159,8 @@ tr.accordion-toggle{
 .table > thead > tr > td,
 .table > thead > tr > th {
     position: relative;
-    border:none; 
-    line-height:30px;
+    border: none; 
+    line-height: 30px;
     vertical-align: unset !important;
 }
 
@@ -185,14 +178,44 @@ tr.accordion-toggle{
     height: 0.7px;
 }
 
-.table .node-group-tag th{
+.table .node-group-tag th {
     font-size: 18px;
-    padding-bottom:15px;
+    padding-bottom: 15px;
 }
 
-.table .node-cell-os-text {
-    text-transform: capitalize;
+.node-cell {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 8px !important;
+    box-sizing: border-box;
 }
+
+.node-cell.center {
+    text-align: center !important;
+}
+
+/* 确保单元格宽度正确应用 */
+.table > thead > tr.node-group-cell > th,
+.table > tbody > tr > td {
+    width: auto;
+    box-sizing: border-box;
+}
+
+/* 保持特定列的宽度设置 */
+.node-cell.status { width: 4% !important; }
+.node-cell.name { width: 8% !important; }
+.node-cell.os { width: 7% !important; }
+.node-cell.location { width: 7% !important; }
+.node-cell.uptime { width: 7% !important; }
+.node-cell.load { width: 6% !important; }
+.node-cell.network { width: 9% !important; }
+.node-cell.conncount { width: 8% !important; }
+.node-cell.processcount { width: 7% !important; }
+.node-cell.cpu { width: 10% !important; }
+.node-cell.memory { width: 10% !important; }
+.node-cell.swap { width: 10% !important; }
+.node-cell.hdd { width: 10% !important; }
 
 .progress {
     margin: 0;
