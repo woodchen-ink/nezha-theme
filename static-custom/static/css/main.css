@@ -144,6 +144,13 @@ body {
     margin: 0;
 }
 
+.table > thead > tr > th,
+.table > tbody > tr > td {
+    width: inherit;
+    max-width: none;
+    box-sizing: border-box;
+}
+
 .table th, .table td {
     text-align: left;
 }
@@ -463,17 +470,25 @@ footer p{
     text-overflow: ellipsis;
     padding: 8px !important;
     box-sizing: border-box;
+    width: inherit !important;
 }
 
 td.node-cell {
-    width: inherit;  /* 继承th设置的宽度 */
-    max-width: none;
+    width: inherit !important;
+    max-width: none !important;
 }
 
 .table > thead > tr.node-group-cell > th {
     padding: 8px;
     vertical-align: middle;
     box-sizing: border-box;
+    width: inherit !important;
+}
+
+.table > tbody > tr,
+.table > thead > tr {
+    width: 100%;
+    display: table-row;
 }
 
 /* 添加计划信息相关样式 */

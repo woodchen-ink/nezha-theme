@@ -4,7 +4,7 @@
     {{template "theme-custom/content-nav" .}}   
     <!--  showGroup true -->
     <template v-if="showGroup">
-        <section class="container table-responsive content" style="width:92%;max-width: 1400px" v-for="group in nodesTag">
+        <section class="container table-responsive content" style="width: 100%; max-width: 1400px; padding: 0;" v-for="group in nodesTag">
             {{template "theme-custom/home-group-true" .}} 
         </section>
     </template>
