@@ -136,12 +136,14 @@ body {
     border-radius: 5px;
     margin-bottom: 20px;
     width: 100%;
+    overflow-x: auto;
 }
 
 .table {
     table-layout: fixed;
     width: 100%;
     margin: 0;
+    border-collapse: collapse;
 }
 
 .table th, .table td {
@@ -159,9 +161,11 @@ tr.accordion-toggle{
 .table > thead > tr > td,
 .table > thead > tr > th {
     position: relative;
-    border:none; 
-    line-height:30px;
-    vertical-align: unset !important;
+    border: none;
+    line-height: 30px;
+    vertical-align: middle !important;
+    padding: 8px;
+    white-space: nowrap;
 }
 
 .table > tbody > tr > td:before,
@@ -201,10 +205,21 @@ tr.accordion-toggle{
 .expandRow > td {
     padding: 0 !important;
     border-top: 0 !important;
+    width: 100%;
 }
 
 .accordian-body{
     margin: 10px 0px 10px 18px;
+    width: 100%;
+}
+
+.accordian-body > div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
 }
 
 .node-cell.center {
@@ -531,5 +546,16 @@ footer p{
 /* 修改计划信息样式 */
 .plan.traffics {  /* 注意这里改成了 traffics */
     background-color: rgba(255, 152, 0, 0.1);
+}
+
+@media screen and (max-width: 768px) {
+    .table-responsive {
+        border: 0;
+        margin-bottom: 0;
+    }
+    
+    .content {
+        padding: 10px;
+    }
 }
 
